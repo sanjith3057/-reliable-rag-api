@@ -51,7 +51,7 @@ class Settings(BaseSettings):
     second_pass_on_abstain: bool = True  # if the model abstains, split the question and try once more
 
     # Second-stage retrieval. The reranker is on because dense search alone misses passages in real
-    # documents (see the ablation in the README); BM25 fusion is available but showed no extra gain.
+    # documents (see docs/EVALUATION.md); BM25 fusion is available but showed no extra gain.
     enable_reranker: bool = True
     enable_hybrid: bool = False
     hybrid_dense_weight: float = 0.65
