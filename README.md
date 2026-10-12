@@ -210,8 +210,8 @@ Dockerfile, docker-compose.yml
 
 - **Scanned PDFs do not work.** The file must contain real text, not photos of pages.
 - **English only.**
-- **A summary of a long document is a sample, not the whole file.** "Summarise this document" reads
-  about 8 passages spread evenly across the library, so details between them can be missed.
+- **Summaries work, but a summary of a long document can miss details.** "Summarise this document"
+  reads about 8 passages spread evenly across the library, not every page.
 - **A table can be cut in half** when a document is split into pieces.
 - **Forms are harder than prose.** A PDF form loses its layout when read, so a value can end up far
   from its label. On a test form, the weakest fallback model gave the wrong phone number.
