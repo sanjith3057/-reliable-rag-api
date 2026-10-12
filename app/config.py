@@ -52,6 +52,9 @@ class Settings(BaseSettings):
     # Fill the context up to max_context_chunks with the chunks next to the retrieved ones, so a list
     # or section that was split across chunks reaches the model whole.
     include_neighbour_chunks: bool = True
+    # "Summarise this document" matches no single passage. Such questions get this many chunks taken
+    # evenly across the library, plus the best search hits, and skip the gate. 0 turns this off.
+    overview_chunks: int = 8
     second_pass_on_abstain: bool = True  # if the model abstains, split the question and try once more
 
     # Second-stage retrieval. The reranker is on because dense search alone misses passages in real

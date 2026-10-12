@@ -64,15 +64,20 @@ class Retriever:
                 seen.add((doc_id, index))
                 wanted.append(f"{doc_id}:{index}")  # the chunk id format set by the chunker
 
-        positions: dict[str, list[int]] = {}
-        for item in chunks:
-            positions.setdefault(item.chunk.doc_id, []).append(item.chunk.index)
-        for doc_id, indexes in positions.items():
-            indexes.sort()
-            for first, second in zip(indexes, indexes[1:], strict=False):
-                if second - first <= 3:
-                    for index in range(first + 1, second):
-                        want(doc_id, index)
+        # (rank of the hit, its position) per document. `chunks` arrives best first.
+        positions: dict[str, list[tuple[int, int]]] = {}
+        for rank, item in enumerate(chunks):
+            positions.setdefault(item.chunk.doc_id, []).append((item.chunk.index, rank))
+        gaps = []
+        for doc_id, placed in positions.items():
+            placed.sort()
+            for (first, rank_a), (second, rank_b) in zip(placed, placed[1:], strict=False):
+                if 1 < second - first <= 3:
+                    gaps.append((rank_a + rank_b, doc_id, first, second))
+        # The gap between the two best-ranked hits is the likeliest to hold the rest of the answer.
+        for _, doc_id, first, second in sorted(gaps):
+            for index in range(first + 1, second):
+                want(doc_id, index)
         for step in (1, -1):
             for item in chunks:
                 want(item.chunk.doc_id, item.chunk.index + step)
@@ -83,6 +88,16 @@ class Retriever:
             return chunks
         similarities = self.store.similarities([chunk.chunk_id for chunk in extra], self.embedder.embed_query(query))
         return chunks + [ScoredChunk(chunk=chunk, score=similarities.get(chunk.chunk_id, 0.0)) for chunk in extra]
+
+    def spread(self, query: str, n: int) -> list[ScoredChunk]:
+        """Up to `n` chunks taken at even intervals across every document, in reading order."""
+        chunks = sorted(self.store.all_chunks(), key=lambda chunk: (chunk.doc_name.lower(), chunk.index))
+        if len(chunks) > n > 1:
+            chunks = [chunks[round(i * (len(chunks) - 1) / (n - 1))] for i in range(n)]
+        elif n == 1:
+            chunks = chunks[:1]
+        similarities = self.store.similarities([chunk.chunk_id for chunk in chunks], self.embedder.embed_query(query))
+        return [ScoredChunk(chunk=chunk, score=similarities.get(chunk.chunk_id, 0.0)) for chunk in chunks]
 
     def _fuse_with_bm25(self, query: str, embedding: list[float], dense: list[ScoredChunk]) -> list[ScoredChunk]:
         """Weighted reciprocal-rank fusion: each list contributes weight / rank."""

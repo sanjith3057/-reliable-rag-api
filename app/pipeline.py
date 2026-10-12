@@ -13,6 +13,7 @@ from app.generation.prompt import (
     SYSTEM_PROMPT,
     build_answer_prompt,
     build_decompose_prompt,
+    is_overview_question,
 )
 from app.generation.validator import (
     NOT_AVAILABLE,
@@ -127,19 +128,29 @@ class RagService:
         k = top_k or self.settings.top_k
         timings: dict = {}
 
-        with timed(timings, "retrieval_ms"):
-            chunks, trace = self.recursive.retrieve(question, k)
-        chunks = chunks[: self.settings.max_context_chunks]
-
-        # Gate: if nothing is close enough, abstain without spending an LLM call.
-        if trace.top_similarity < self.settings.similarity_threshold:
-            return self._finish(question, _abstain("below_threshold"), chunks, trace, timings)
-
-        if self.settings.include_neighbour_chunks:
+        overview = self.settings.overview_chunks > 0 and is_overview_question(question)
+        if overview:
+            # A question about the documents as a whole: read across them instead of searching.
             with timed(timings, "retrieval_ms"):
-                chunks = self.retriever.with_neighbours(question, chunks, self.settings.max_context_chunks)
+                sampled = self.retriever.spread(question, self.settings.overview_chunks)
+                seen = {item.chunk.chunk_id for item in sampled}
+                hits = [item for item in self.retriever.retrieve(question, 3) if item.chunk.chunk_id not in seen]
+                chunks = sampled + hits
+            trace = RetrievalTrace(top_similarity=max(item.score for item in chunks), retrievals=1)
+        else:
+            with timed(timings, "retrieval_ms"):
+                chunks, trace = self.recursive.retrieve(question, k)
+            chunks = chunks[: self.settings.max_context_chunks]
 
-        verdict, labels = self._generate(question, chunks, timings)
+            # Gate: if nothing is close enough, abstain without spending an LLM call.
+            if trace.top_similarity < self.settings.similarity_threshold:
+                return self._finish(question, _abstain("below_threshold"), chunks, trace, timings)
+
+            if self.settings.include_neighbour_chunks:
+                with timed(timings, "retrieval_ms"):
+                    chunks = self.retriever.with_neighbours(question, chunks, self.settings.max_context_chunks)
+
+        verdict, labels = self._generate(question, chunks, timings, overview)
 
         # Second chance. If the model found the evidence insufficient and the question has several
         # parts, retrieve each part on its own and ask once more. A question that asks for one fact
@@ -148,6 +159,7 @@ class RagService:
             verdict.abstain_reason == "model_abstained"
             and self.settings.second_pass_on_abstain
             and not trace.sub_questions
+            and not overview
         ):
             with timed(timings, "second_pass_ms"):
                 wider = self._retrieve_by_parts(question, k, chunks, trace)
@@ -187,9 +199,9 @@ class RagService:
         response = AskResponse(answer=verdict.answer, answerable=True, sources=sources, warnings=warnings)
         return self._finish(question, response, chunks, trace, timings, cited)
 
-    def _generate(self, question: str, chunks: list[ScoredChunk], timings: dict):
+    def _generate(self, question: str, chunks: list[ScoredChunk], timings: dict, overview: bool = False):
         """One grounded-answer attempt: prompt, call, validate."""
-        prompt, labels = build_answer_prompt(question, chunks)
+        prompt, labels = build_answer_prompt(question, chunks, overview)
         with timed(timings, "generation_ms"):
             payload = self.call_llm(SYSTEM_PROMPT, prompt, parse_answer)
         verdict = validate_answer(payload, set(labels))

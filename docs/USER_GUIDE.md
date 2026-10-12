@@ -53,8 +53,16 @@ Good questions are specific:
 | Works well | Works less well |
 | --- | --- |
 | "How many days of annual leave do employees get in 2025?" | "Tell me about leave" |
-| "How quickly must a personal data breach be reported?" | "Summarise this document" |
+| "How quickly must a personal data breach be reported?" | "Tell me everything" |
 | "Which scanner has the longer battery life, the Orbit A1 or the Orbit B2?" | "What do you think of this policy?" |
+
+The length of the answer follows the question. "What accuracy did the system achieve?" gets one
+line. "How does the system detect drowsiness?" gets a short paragraph, and a question that asks for
+a list gets a list.
+
+**Summaries.** "Summarise this document", "What is this document about?" and "What are the key
+points?" work too. For these the assistant reads passages spread evenly across the library instead
+of searching, so on a long document a summary covers the whole but can miss details.
 
 Questions can be up to 1,000 characters. You can ask two things at once ("How fast must a breach be
 reported, and what is the highest fine?"); the assistant looks up each part.

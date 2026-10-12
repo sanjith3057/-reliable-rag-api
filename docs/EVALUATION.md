@@ -16,10 +16,10 @@ How the system was measured, what the numbers are, and how much to trust them.
 
 | Question set | Result |
 | --- | --- |
-| 20 questions on made-up company documents | 20 / 20 (current configuration) |
-| 18 questions on the 88-page GDPR regulation | 18 / 18 (one question is borderline; measured before the last two changes) |
+| 20 questions on made-up company documents | 19 / 20 on the last complete run; the failing question is fixed and re-checked, a full re-run is pending |
+| 18 questions on the 88-page GDPR regulation | 18 / 18 |
 | 10 generated questions on a document never used for tuning | 10 / 10 |
-| 169 automated tests | 169 passed |
+| 172 automated tests | 172 passed |
 
 Every evaluation number comes from a live run: real retrieval, the real LLM, no mocks. The sets are
 small and I wrote most of them, so this shows the pipeline works as designed. It is not a benchmark.
@@ -61,37 +61,37 @@ questions.
 
 ## Results
 
-Both runs: `bge-small-en-v1.5`, reranker on, top-k 5, 12 Oct 2026. The two columns were measured
-with different settings, because the free quota ran out before the real set could be run again:
-
-| | Test set | Real set |
-| --- | --- | --- |
-| Model | `qwen/qwen3.8-27b` (third in the failover chain) | `openai/gpt-oss-20b` (second) |
-| Gate | 0.40 (current) | 0.50 (previous) |
-| Neighbouring chunks | On (current) | Not yet built |
+Both runs: Groq `qwen/qwen3.8-27b` (the third and weakest model in the failover chain, because the
+other two had used up their daily quota), `bge-small-en-v1.5`, reranker on, top-k 5, gate 0.40,
+neighbouring chunks on, the longer-answer prompt. Run on 12 Oct 2026.
 
 | Metric | Test set (fictional) | Real set (GDPR) | Definition |
 | --- | --- | --- | --- |
-| Questions passed | 20 / 20 | 18 / 18 | Every applicable check below passed |
+| Questions passed | 19 / 20 | 18 / 18 | Every applicable check below passed |
 | Retrieval hit@5 | 100% | 100% | The expected documents were retrieved and, on the real set, the supporting passage is inside a retrieved chunk |
-| Abstention accuracy | 100% | 100% | Answered when it should, refused when it should |
+| Abstention accuracy | 95% | 100% | Answered when it should, refused when it should |
 | Citation correctness | 100% | 100% | At least one citation, and every citation is an expected document |
 | Answer keyword accuracy | 100% | 100% | The answer contains the expected facts |
 | Distractor resilience | 100% | n/a | Cited the right document and not the near-miss |
-| Average latency | 13.2 s | 8.7 s | Dominated by rate-limit waits, see below |
+| Average latency | 15.6 s | 20.3 s | Dominated by rate-limit waits, see below |
 
 Per-question tables: [`eval/results.md`](../eval/results.md) and
 [`eval/results_real.md`](../eval/results_real.md).
 
-**The test set column is the current configuration.** It was run after the gate was lowered and
-neighbouring chunks were added, and it was answered by the weakest model in the chain.
+**The one failure, t13, came from the change that allows longer answers.** The question is "What is
+the password for the guest Wi-Fi network?". The handbook says the password rotates weekly and is
+handed out at reception; it does not give the password. The expected result is a refusal. With the
+new instruction to give complete answers, the model replied "The password is not available in the
+documents because it rotates weekly, is handed out in person, and is never written down". That is
+true and cited, but it counts as answering. The run before this change scored 20 / 20.
 
-**The real set column is not.** It predates both changes. What was re-checked for it: lowering the
-gate changes the path of a question only if its best score is between 0.40 and 0.50, where it used
-to be refused by the gate and is now passed to the LLM. That is one real-set question (r18), and it
-was asked again and is still refused, now by the model. The effect of neighbouring chunks on the
-real set has not been measured. Run `python eval/run_eval.py --dataset real` to measure it.
-
+**What was done about it, and what is not yet measured.** One sentence was added to the prompt:
+when the requested fact is not stated, refuse, even if the sources explain why it is missing. After
+that, t13 and the other three near-topic and off-topic test questions (t11, t12, t14) were each
+asked twice and refused every time. A full re-run of the test set then stopped after nine questions
+(all nine passed) when the last model's daily quota ran out, so it was not saved. The real set was
+run before that one sentence was added. Both sets should be run once more:
+`python eval/run_eval.py` and `python eval/run_eval.py --dataset real`.
 **One question is borderline.** r12 asks two things at once: how quickly a breach must be reported
 and what the highest fine is. Those facts are on pages 52 and 83. In the run before this one it
 failed: the two passages were not both retrieved, the model said the evidence was insufficient, and
@@ -193,7 +193,13 @@ The last two rows are failures that remain. Both are listed under
    TensorFlow; it still omits MediaPipe and MTCNN. Five other questions on that report (accuracy,
    guide, hardware, future scope, and one it cannot answer) came out right.
 
-Steps 2 to 9 used information from outside the dev set, including the earlier real-set runs, so the
+10. **Longer answers, and a path for summaries.** The prompt asked for short answers, so an
+    explanation came back as one clipped line and "Summarise this document" was refused. Answer
+    length now follows the question, and a whole-document question reads passages spread across the
+    library. This cost one test question (t13, described under Results) until the prompt was
+    tightened.
+
+Steps 2 to 10 used information from outside the dev set, including the earlier real-set runs, so the
 real-set score is not a clean held-out number. No change was made to target r12 specifically.
 
 ## Retrieval and fusion evaluation (no LLM)
@@ -253,8 +259,8 @@ What this says:
   most questions waited for the limit to reset. Questions that did not wait took 1.1 to 3.0
   seconds, and questions stopped by the gate took about 0.5 seconds.
 - **Model choice was forced.** The default model is `gpt-oss-120b`, but its 200,000-token daily
-  quota was exhausted by earlier runs, so the numbers come from the two failover models (see the
-  table under Results). An earlier test-set run on `gpt-oss-120b`, with the first version's
+  quota was exhausted by earlier runs, so the numbers come from the last model in the failover
+  chain. An earlier test-set run on `gpt-oss-120b`, with the first version's
   settings, also scored 20 / 20. The current configuration has not been measured on `gpt-oss-120b`.
 - **Answer accuracy is a keyword match**, which checks that the right number or name is present,
   not that the whole sentence is correct.
@@ -276,11 +282,11 @@ the CLI prints the result but does not overwrite the saved one.
 ## Automated tests
 
 ```bash
-pytest          # 169 tests, about 6 seconds, no API key or network needed
+pytest          # 172 tests, about 6 seconds, no API key or network needed
 ruff check .
 ```
 
-Latest run: **169 passed, 0 failed**. The full output is recorded in
+Latest run: **172 passed, 0 failed**. The full output is recorded in
 [`tests/RESULTS.md`](../tests/RESULTS.md). The same two commands run on every push
 (`.github/workflows/ci.yml`).
 

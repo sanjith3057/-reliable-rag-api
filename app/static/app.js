@@ -298,7 +298,8 @@ async function ask() {
       card.className = "answer";
       const count = result.sources.length;
       badge.textContent = `Grounded · ${count} source${count === 1 ? "" : "s"}`;
-      body.append(el("div", "answer-text", result.answer));
+      // A one-line answer is set large; a longer one reads better as body text.
+      body.append(el("div", result.answer.length > 160 ? "answer-text long" : "answer-text", result.answer));
       const sources = el("div", "sources");
       sources.append(el("div", "sources-title", "Evidence"));
       const list = el("div", "source-list");

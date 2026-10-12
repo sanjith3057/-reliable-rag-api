@@ -65,6 +65,7 @@ Three things sit behind interfaces so they can be swapped without touching the p
 
 | Step | Detail |
 | --- | --- |
+| Overview route | A short question about the documents as a whole (`is_overview_question`: summarise, overview, key points, what is this document about) skips search and the gate. It gets 8 chunks taken at even intervals across the library (`OVERVIEW_CHUNKS`) plus the 3 best search hits. |
 | Search | The question is embedded and the 20 nearest chunks are fetched (`RAW_K`). |
 | Rerank | A cross-encoder re-scores the 20 and the best 5 are kept (`TOP_K`). |
 | Gate | If the best cosine similarity is below 0.40, return "not available" with `abstain_reason: below_threshold`. No LLM call is made. |
@@ -210,6 +211,7 @@ The most useful ones:
 | `TOP_K` | 5 | Passages kept after search and reranking |
 | `MAX_CONTEXT_CHUNKS` | 8 | Most passages given to the LLM, neighbours included |
 | `INCLUDE_NEIGHBOUR_CHUNKS` | true | Add the chunks next to the retrieved ones |
+| `OVERVIEW_CHUNKS` | 8 | Chunks sampled across the library for a summary question; 0 turns the route off |
 | `SIMILARITY_THRESHOLD` | 0.40 | The gate: below this, no LLM call |
 | `ENABLE_RERANKER` | true | Cross-encoder reranking of the top 20 |
 | `ENABLE_HYBRID` | false | Add BM25 keyword search to dense search |
@@ -323,9 +325,21 @@ contain a figure the model worked out, such as a difference between two values.
 tech stack used here", search returned the first and the last of them and two bibliography entries,
 so the answer listed Windows, Python, Pygame, NumPy and Pandas and left out OpenCV and TensorFlow,
 which are in the middle. Now the chunks between two hits, and the ones just after and before each
-hit, fill the context up to 8. The same question then also returns OpenCV and TensorFlow. It still
-left out MediaPipe and MTCNN in my runs, so a long list can remain incomplete. The cost is up to
-three more chunks of tokens per question.
+hit, fill the context up to 8. The gap between the two best-ranked hits is filled first: my first
+version filled gaps in page order and spent its three free slots on the wrong side of the section.
+The same question now returns the full list, including OpenCV, TensorFlow, MediaPipe and MTCNN. The
+cost is up to three more chunks of tokens per question.
+
+**Answer length follows the question.** The prompt first said "Keep the answer short", which
+turned "How does the system detect drowsiness?" into one clipped line. It now asks for one short
+sentence for a single fact, and a complete answer (several sentences, or lines starting with a
+dash) for a list, an explanation or a summary.
+
+**A separate route for whole-document questions.** "Summarise this document" is not similar to
+any single passage, so search returns little and the gate used to refuse it. A short question that
+matches a small list of overview phrasings now skips search: it reads 8 chunks taken at even
+intervals across the library, plus the 3 best search hits, and the citation rules still apply. The
+phrase list is a heuristic and will miss unusual wordings, which then go through search as before.
 
 **Excerpts that contain the answer, without another LLM call.** The cited chunk is split into lines
 and sentences, and the ones that together contain the most words of the answer are quoted. When a
@@ -390,8 +404,9 @@ What this does not do, grouped by where it would bite.
 - **Excerpts are chosen by shared words.** A paraphrased answer falls back to the closest sentence,
   which is weaker evidence than a line containing the answer itself.
 - **Multi-part questions across distant sections can still fail**, as r12 did in one of two runs.
-- **Whole-document questions get partial answers.** "Summarise this document" is answered from the
-  best-matching chunks and their neighbours (8 at most), not the whole file.
+- **A summary is built from a sample.** "Summarise this document" reads 8 chunks spread across the
+  library plus 3 search hits. On a long document, or a library of many documents, most of the text
+  is never seen, and a summary request worded unusually is not recognised as one.
 - **The number check is a warning and only covers figures.** It flags a number that is not in the
   cited passages, including one the model correctly worked out. An invented claim with no number in
   it is caught only by the citation rules and, in evaluation, by the judge.
