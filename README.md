@@ -1,6 +1,6 @@
 # Reliable RAG API
 
-[![CI](https://github.com/sanjith3057/-reliable-rag-api/actions/workflows/ci.yml/badge.svg)](https://github.com/sanjith3057/-reliable-rag-api/actions/workflows/ci.yml)
+[![CI](https://github.com/sanjith3057/reliable-rag-api/actions/workflows/ci.yml/badge.svg)](https://github.com/sanjith3057/reliable-rag-api/actions/workflows/ci.yml)
 
 A knowledge assistant that answers questions from your documents. It cites the passage each answer
 came from, and when the documents do not contain the answer it says so instead of guessing.
