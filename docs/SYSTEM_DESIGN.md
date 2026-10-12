@@ -59,6 +59,24 @@ Three things sit behind interfaces so they can be swapped without touching the p
 | Embed | Each chunk becomes a 384-dimension vector. |
 | Store | Chunks, vectors and metadata go into one ChromaDB collection using cosine distance. |
 
+## Flow: reading a scanned page
+
+![Reading a scanned page](images/scan-flow.svg)
+
+This runs inside the Read step, once per PDF, and only for pages whose text layer is empty.
+
+| Step | Detail |
+| --- | --- |
+| Find the scanned pages | A page is treated as scanned when `pypdf` returns no text for it. A typed PDF has none, so OCR is never loaded for it. |
+| Check the limit | More than `MAX_OCR_PAGES` (25) scanned pages in a PDF that has no typed page at all is refused with `TOO_MANY_SCANNED_PAGES`. In a mostly typed PDF, the first 25 picture-only pages are read and the rest are skipped. |
+| Render | `pypdfium2` draws the page at twice its size (144 dpi) into memory. Nothing is written to disk. |
+| Recognise | RapidOCR (PP-OCR models on ONNX Runtime, CPU) returns a box, a text and a confidence for each line it finds. |
+| Order | Boxes whose tops are within half a line height are joined into one line, left to right; lines are ordered top to bottom. |
+| Hand over | The page text is marked `from_ocr` and continues through Split, Embed and Store. The upload response reports `ocr_pages`. |
+
+If the OCR packages cannot load, a scanned PDF gets `OCR_UNAVAILABLE` and typed PDFs are unaffected.
+`ENABLE_OCR=false` turns the whole path off.
+
 ## Flow: answering a question
 
 ![Answering a question](images/ask-flow.svg)
@@ -372,13 +390,30 @@ Recall@5, so it is not a default.
 **No fine-tuning.** A fine-tuned model would only be less likely to invent a source. The validator
 makes an invented source impossible to return, for any model, and it needs no GPU or training data.
 
+### OCR for scanned pages, with a local model
+
+A reviewer's first upload may well be a scan, and "not supported" is a poor first answer. The OCR
+model runs locally for the same reason the embedder does: documents stay on the machine, and it
+needs no key or quota. RapidOCR was chosen over Tesseract because it installs with `pip` alone;
+Tesseract needs a separate program on Windows.
+
+| Cost | Size |
+| --- | --- |
+| Time per scanned page (CPU) | About 3 to 6 seconds measured on one page; 12 seconds for the first page in the container, which includes loading the model |
+| Docker image | About 220 MB for the two system libraries OpenCV needs, plus the Python packages |
+| Typed PDFs | No cost: the OCR model is only loaded when a page has no text |
+
+Sending hard pages to a vision LLM would read handwriting far better. It was left out: the page
+image would leave the machine, it spends quota at upload time, and a model that transcribes can
+also invent, which is the failure this project exists to prevent.
+
 ## Limitations
 
 What this does not do, grouped by where it would bite.
 
 **Evaluation**
 
-- **The bundled sets are small and I wrote them.** 59 questions. They show the pipeline works as
+- **The bundled sets are small and I wrote them.** 77 questions. They show the pipeline works as
   designed on two kinds of document; they are not a benchmark.
 - **Generated sets are easier than human-written ones**, and the LLM judge is the same model that
   answered. Both are useful for testing your own documents and both flatter the system somewhat.
@@ -411,7 +446,11 @@ What this does not do, grouped by where it would bite.
 - **The number check is a warning and only covers figures.** It flags a number that is not in the
   cited passages, including one the model correctly worked out. An invented claim with no number in
   it is caught only by the citation rules and, in evaluation, by the judge.
-- **OCR is basic.** Scanned pages are read by a small local model: fine for clean print, poor for handwriting, skewed photos and tables. Recognised text is not corrected, so a misread word cannot be found by search. A scan is limited to 25 pages because each page takes a few seconds on a CPU.
+- **OCR is basic.** Scanned pages are read by a small local model: fine for clean print, poor for
+  handwriting, skewed photos and tables. On the bundled handwritten page it read "Data Engineering"
+  as "Dota Engineguing", the year 2024 as 2624, and missed the student's name. Recognised text is not
+  corrected, so the answer repeats the misreading and a misread word cannot be found by search.
+  A scan is limited to 25 pages because each page takes a few seconds on a CPU.
 - **English only**, and the gate threshold belongs to this embedding model. A different model needs
   `python eval/run_eval.py --tune` run again.
 - **No streaming.** The answer arrives whole, because it has to be validated before any of it is shown.

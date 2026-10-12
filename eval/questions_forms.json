@@ -1,0 +1,249 @@
+[
+  {
+    "id": "f01",
+    "type": "answerable",
+    "question": "What is the preferred name of the patient on the intake form?",
+    "expected_answerable": true,
+    "expected_sources": [
+      "medical_intake_form.pdf"
+    ],
+    "expected_keywords": [
+      "Maggie"
+    ],
+    "expected_evidence": [
+      "Maggie"
+    ]
+  },
+  {
+    "id": "f02",
+    "type": "answerable",
+    "question": "What is the patient allergic to, according to the intake form?",
+    "expected_answerable": true,
+    "expected_sources": [
+      "medical_intake_form.pdf"
+    ],
+    "expected_keywords": [
+      "penicillin",
+      "shellfish"
+    ],
+    "expected_evidence": [
+      "Penicillin, shellfish"
+    ]
+  },
+  {
+    "id": "f03",
+    "type": "answerable",
+    "question": "Which medications is the patient currently taking?",
+    "expected_answerable": true,
+    "expected_sources": [
+      "medical_intake_form.pdf"
+    ],
+    "expected_keywords": [
+      "Lisinopril",
+      "Loratadine",
+      "Vitamin D3"
+    ],
+    "expected_evidence": [
+      "Lisinopril 10mg"
+    ]
+  },
+  {
+    "id": "f04",
+    "type": "answerable",
+    "question": "Who is the patient's emergency contact on the intake form?",
+    "expected_answerable": true,
+    "expected_sources": [
+      "medical_intake_form.pdf"
+    ],
+    "expected_keywords": [
+      "Harold"
+    ],
+    "expected_evidence": [
+      "Harold Whitfield"
+    ]
+  },
+  {
+    "id": "f05",
+    "type": "answerable",
+    "question": "What chronic conditions does the patient report on the intake form?",
+    "expected_answerable": true,
+    "expected_sources": [
+      "medical_intake_form.pdf"
+    ],
+    "expected_keywords": [
+      "hypertension"
+    ],
+    "expected_evidence": [
+      "Mild hypertension"
+    ]
+  },
+  {
+    "id": "f06",
+    "type": "answerable",
+    "question": "What is the reason for the patient's visit to Willow Creek Family Medicine?",
+    "expected_answerable": true,
+    "expected_sources": [
+      "medical_intake_form.pdf"
+    ],
+    "expected_keywords": [
+      "back pain"
+    ],
+    "expected_evidence": [
+      "lower back pain"
+    ]
+  },
+  {
+    "id": "f07",
+    "type": "answerable",
+    "question": "How often does the patient exercise?",
+    "expected_answerable": true,
+    "expected_sources": [
+      "medical_intake_form.pdf"
+    ],
+    "expected_keywords": [
+      "3-4"
+    ],
+    "expected_evidence": [
+      "3-4 times per week"
+    ]
+  },
+  {
+    "id": "f08",
+    "type": "answerable",
+    "question": "What is the patient's own phone number on the intake form?",
+    "expected_answerable": true,
+    "expected_sources": [
+      "medical_intake_form.pdf"
+    ],
+    "expected_keywords": [
+      "555-8827"
+    ],
+    "expected_evidence": [
+      "(503) 555-8827"
+    ]
+  },
+  {
+    "id": "f09",
+    "type": "multi",
+    "question": "Who is the patient's insurance provider and what is the policy number?",
+    "expected_answerable": true,
+    "expected_sources": [
+      "medical_intake_form.pdf"
+    ],
+    "expected_keywords": [
+      "Cascadia",
+      "CHP-774920315"
+    ],
+    "expected_evidence": [
+      "Cascadia Health Partners",
+      "CHP-774920315"
+    ]
+  },
+  {
+    "id": "f10",
+    "type": "multi",
+    "question": "What past surgeries has the patient had, and what does the family medical history say about her mother?",
+    "expected_answerable": true,
+    "expected_sources": [
+      "medical_intake_form.pdf"
+    ],
+    "expected_keywords": [
+      "Appendectomy",
+      "diabetes"
+    ],
+    "expected_evidence": [
+      "Appendectomy, 1998",
+      "Mother: type 2 diabetes"
+    ]
+  },
+  {
+    "id": "f11",
+    "type": "unanswerable",
+    "question": "What is the patient's blood type on the intake form?",
+    "expected_answerable": false,
+    "expected_sources": [],
+    "expected_keywords": [],
+    "expected_evidence": []
+  },
+  {
+    "id": "f12",
+    "type": "unanswerable",
+    "question": "Which doctor examined the patient at Willow Creek Family Medicine?",
+    "expected_answerable": false,
+    "expected_sources": [],
+    "expected_keywords": [],
+    "expected_evidence": []
+  },
+  {
+    "id": "f13",
+    "type": "unanswerable",
+    "question": "How much is the patient's insurance co-payment for this visit?",
+    "expected_answerable": false,
+    "expected_sources": [],
+    "expected_keywords": [],
+    "expected_evidence": []
+  },
+  {
+    "id": "s01",
+    "type": "answerable",
+    "question": "What is the subject code written on the handwritten assignment cover page?",
+    "expected_answerable": true,
+    "expected_sources": [
+      "handwritten_assignment_scan.pdf"
+    ],
+    "expected_keywords": [
+      "22CDA602"
+    ],
+    "expected_evidence": [
+      "22CDA602"
+    ]
+  },
+  {
+    "id": "s02",
+    "type": "answerable",
+    "question": "What is the topic of the handwritten assignment?",
+    "expected_answerable": true,
+    "expected_sources": [
+      "handwritten_assignment_scan.pdf"
+    ],
+    "expected_keywords": [
+      "Data Science"
+    ],
+    "expected_evidence": [
+      "Data Science"
+    ]
+  },
+  {
+    "id": "s03",
+    "type": "answerable",
+    "question": "What date is written on the handwritten assignment cover page?",
+    "expected_answerable": true,
+    "expected_sources": [
+      "handwritten_assignment_scan.pdf"
+    ],
+    "expected_keywords": [
+      "16-11-2024"
+    ],
+    "expected_evidence": [
+      "16-11-2024"
+    ]
+  },
+  {
+    "id": "s04",
+    "type": "unanswerable",
+    "question": "How many marks were awarded for the handwritten assignment?",
+    "expected_answerable": false,
+    "expected_sources": [],
+    "expected_keywords": [],
+    "expected_evidence": []
+  },
+  {
+    "id": "s05",
+    "type": "unanswerable",
+    "question": "Which college issued the handwritten assignment?",
+    "expected_answerable": false,
+    "expected_sources": [],
+    "expected_keywords": [],
+    "expected_evidence": []
+  }
+]

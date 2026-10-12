@@ -354,6 +354,7 @@ const DATASET_NOTES = {
   mine: "Writes questions from the documents in your library, checks each one against its source passage, then runs them. Works on any documents.",
   test: "20 questions on the bundled fictional documents. Needs the sample docs loaded.",
   real: "18 questions on the bundled 88-page GDPR PDF. Needs the sample docs loaded.",
+  forms: "18 questions on a filled-in medical intake form and a handwritten page read with OCR. Needs the sample docs loaded.",
   dev: "Used for tuning, not reported. Needs the sample docs loaded.",
 };
 

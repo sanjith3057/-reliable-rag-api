@@ -89,6 +89,14 @@ The file is split into small pieces, and each piece is turned into a list of num
 its meaning. Pieces with similar meaning get similar numbers, which is what makes search by meaning
 possible. Uploading the same file twice replaces it; nothing is duplicated.
 
+### Reading a scanned page
+
+![Reading a scanned page: read the text layer; if the page has none, turn it into a picture, run OCR, put the lines in reading order, and pass the text on](docs/images/scan-flow.svg)
+
+A scanned PDF is a set of pictures, so there is no text to pull out. For those pages the server
+reads the picture with OCR (optical character recognition), a small model that runs on your
+machine. Typed pages skip this step, so ordinary PDFs are as fast as before.
+
 ### Asking a question
 
 ![Asking a question: search, rerank, gate, ask the LLM, check the answer, then return the answer with evidence or say it is not available](docs/images/ask-flow.svg)
@@ -127,14 +135,16 @@ models, because my own testing had used up the daily quota of the first two.
 | 20 questions on 8 made-up company documents | Answers must come from the documents, because no AI model knows these facts | 19 / 20 |
 | 18 questions on the 88-page GDPR regulation | Finding the right passage in a long, dense, real document | 18 / 18 |
 | 10 questions written automatically from a document it had never seen | Does it work on someone else's file? | 10 / 10 |
+| 18 questions on a filled-in form and a handwritten scan | Documents that are not prose, and text read with OCR | Retrieval checked: the right passage is found for 12 of 13 answerable questions. The run with the AI model is pending (daily quota spent) |
 
-These sets are small. The one miss on the first set was a trap question that got an explanation
+The first three results were measured before the form and the scan were added to the document
+set, so they have not been re-run on the 11 documents now bundled. These sets are small. The one miss on the first set was a trap question that got an explanation
 instead of a refusal; the prompt was tightened and that question now passes, but the full set has
 not been re-run since. One question on the GDPR set has passed in some runs and failed in others.
 The full numbers, the runs that went badly and what was changed are in
 [Evaluation and tests](docs/EVALUATION.md).
 
-There are also 181 automated tests. They run in about 15 seconds with no API key and no internet.
+There are also 185 automated tests. They run in under 20 seconds with no API key and no internet.
 
 ```bash
 pytest
@@ -182,8 +192,8 @@ app/                 the server
 docs/                user guide, system design, evaluation, diagrams
 eval/                question sets and recorded results
 sample_docs/         8 made-up company documents to try it with
-real_docs/           one real 88-page PDF (the GDPR regulation)
-tests/               181 automated tests and their recorded results
+real_docs/           the 88-page GDPR regulation, a filled-in form and a handwritten scan
+tests/               185 automated tests and their recorded results
 Dockerfile, docker-compose.yml
 ```
 
@@ -197,10 +207,10 @@ Dockerfile, docker-compose.yml
 | Evidence: document names and excerpts | `sources` on every answer: document, page, excerpt, score |
 | Say clearly when the information is unavailable | The gate and the answer checker (`app/generation/validator.py`) |
 | API in FastAPI | `app/api/routes.py`, interactive docs at `/docs` |
-| At least 10 evaluation questions of three kinds | 59 questions in `eval/`: answerable, unanswerable, multi-evidence, distractor |
+| At least 10 evaluation questions of three kinds | 77 questions in `eval/`: answerable, unanswerable, multi-evidence, distractor |
 | Clean, modular Python | One package per stage; models sit behind interfaces |
 | Environment variables for keys and config | `app/config.py`, `.env.example` |
-| Tests for retrieval, API behaviour, failure cases | `tests/` (181 tests), results in [`tests/RESULTS.md`](tests/RESULTS.md) |
+| Tests for retrieval, API behaviour, failure cases | `tests/` (185 tests), results in [`tests/RESULTS.md`](tests/RESULTS.md) |
 | Docker support and setup documentation | `Dockerfile`, `docker-compose.yml`, "Run it" above |
 | Existing LLM API, no training from scratch | Groq, OpenAI or Gemini; the embedding model is pretrained |
 | Sample documents and evaluation questions | `sample_docs/`, `real_docs/`, `eval/questions_*.json` |
@@ -209,9 +219,11 @@ Dockerfile, docker-compose.yml
 
 ## Limitations
 
-- **Scanned PDFs are read with OCR, which makes mistakes.** Clean printed scans read well. Handwriting
-  and skewed photos do not: on a handwritten cover page it read "Data Engineering" as "Dota
-  Engineguing". A scan is limited to 25 pages and takes a few seconds a page.
+- **Handwriting is read badly.** Scanned pages are read with OCR. Clean printed scans read well.
+  Handwriting and skewed photos do not: on the bundled handwritten page it read "Data Engineering"
+  as "Dota Engineguing" and the year 2024 as 2624. The answer then repeats the misread text,
+  because it is faithful to what was read.
+- **A scan is limited to 25 pages** and takes a few seconds a page.
 - **English only.**
 - **Summaries work, but a summary of a long document can miss details.** "Summarise this document"
   reads about 8 passages spread evenly across the library, not every page.
@@ -240,7 +252,9 @@ Not built yet, in the order I would do them:
   source of facts that has no citation.
 - **Summaries that read every page**, by summarising a long document section by section.
 - **Smarter splitting** that keeps a table whole and carries the section heading into each piece.
-- **Better OCR** for skewed photos, tables and handwriting.
+- **Better reading of handwriting.** One of the three AI models already in use can read images.
+  When the local OCR is unsure of a page, that page could be sent to it for transcription. Left
+  out for now because the page image would leave your machine and a model can invent a word.
 - **Separate libraries per user**, with accounts in place of shared keys.
 - **A larger question set written by someone else**, scored by an independent judge model.
 

@@ -1,6 +1,6 @@
 # Retrieval and fusion evaluation
 
-Corpus: 584 chunks from 9 documents. No LLM is called.
+Corpus: 588 chunks from 11 documents. No LLM is called.
 A chunk counts as relevant if it contains the gold evidence text for the question.
 
 - **Recall@K**: share of the gold evidence found in the top K chunks (a two-fact question needs both).
@@ -38,8 +38,8 @@ A chunk counts as relevant if it contains the gold evidence text for the questio
 
 | Retrieval | Mean | P95 |
 | --- | --- | --- |
-| BM25 only | 2 ms | 3 ms |
-| Dense only | 20 ms | 27 ms |
-| Hybrid (BM25 + dense) | 23 ms | 29 ms |
-| Dense + reranker (default) | 723 ms | 1199 ms |
-| Hybrid + reranker | 2209 ms | 3659 ms |
+| BM25 only | 3 ms | 6 ms |
+| Dense only | 42 ms | 60 ms |
+| Hybrid (BM25 + dense) | 57 ms | 94 ms |
+| Dense + reranker (default) | 661 ms | 1325 ms |
+| Hybrid + reranker | 952 ms | 1468 ms |

@@ -1,4 +1,4 @@
-# Real evaluation document
+# Real evaluation documents
 
 `gdpr_regulation_2016_679.pdf` is Regulation (EU) 2016/679, the General Data Protection Regulation,
 as published in the Official Journal of the European Union (88 pages).
@@ -14,3 +14,16 @@ trivial. `eval/questions_real.json` is written against it.
 One caveat: an LLM already knows the GDPR from training, so a correct answer here does not by itself
 prove grounding. That is what the fictional documents are for. This document tests retrieval quality
 and citation on real text, and the unanswerable questions test abstention on a topic the model knows.
+
+## Two more documents, for forms and scans
+
+`medical_intake_form.pdf` is a one-page filled-in patient intake form. It is fictional: the form
+itself states that the practice, the patient and every detail on it are invented. It is here
+because a form is not prose. Its text comes out as bare labels and values, and a value can sit far
+from its label.
+
+`handwritten_assignment_scan.pdf` is a photo of a handwritten cover page, supplied by the author of
+this project (it is their own coursework). It has no text layer, so it is read with OCR, and the OCR
+misreads parts of it. It is here to show what the system does with a hard scan, not a clean one.
+
+`eval/questions_forms.json` is written against these two.

@@ -19,7 +19,8 @@ How the system was measured, what the numbers are, and how much to trust them.
 | 20 questions on made-up company documents | 19 / 20 on the last complete run; the failing question is fixed and re-checked, a full re-run is pending |
 | 18 questions on the 88-page GDPR regulation | 18 / 18 |
 | 10 generated questions on a document never used for tuning | 10 / 10 |
-| 181 automated tests | 181 passed |
+| 18 questions on a filled-in form and a handwritten scan | Retrieval checked: the right passage is found for 12 of 13 answerable questions. The run with the AI model is pending (daily quota spent) |
+| 185 automated tests | 185 passed |
 
 Every evaluation number comes from a live run: real retrieval, the real LLM, no mocks. The sets are
 small and I wrote most of them, so this shows the pipeline works as designed. It is not a benchmark.
@@ -31,19 +32,25 @@ There are two kinds of check in this project, and they answer different question
 | Question | Are the answers good? | Does the code do what it should? |
 | Uses the real LLM | Yes | No, a scripted fake |
 | Needs a key and quota | Yes | No |
-| Time | Minutes | About 15 seconds |
+| Time | Minutes | Under 20 seconds |
 | Run with | `python eval/run_eval.py` or the Evaluate tab | `pytest` |
 
 ## The question sets
 
-All sets run against one mixed corpus of 584 chunks: the 8 short fictional documents plus an
-88-page real PDF (the GDPR regulation, `real_docs/`).
+All sets run against one mixed corpus of 588 chunks from 11 documents: the 8 short fictional
+documents, an 88-page real PDF (the GDPR regulation), a filled-in medical intake form (fictional)
+and a handwritten page read with OCR. The last three are in `real_docs/`.
+
+The test-set and real-set results below were measured on 12 Oct 2026, before the form and the
+handwritten page were added, when the corpus was 584 chunks from 9 documents. They have not been
+re-run on the larger corpus: the daily quota was spent.
 
 | Set | Questions | Written against | Purpose |
 | --- | --- | --- | --- |
 | `questions_dev.json` | 21 | Both | Tuning only. Never reported as a result. |
 | `questions_test.json` | 20 | Fictional documents | Grounding: the model cannot know these facts from training |
 | `questions_real.json` | 18 | The GDPR PDF | Retrieval and abstention on long, dense, real text |
+| `questions_forms.json` | 18 | A filled-in form and a handwritten scan | Documents that are not prose: label and value pairs, and text read with OCR |
 
 Four kinds of question are used:
 
@@ -99,6 +106,37 @@ the system refused. In this run the second pass found both and it passed, after 
 that as a question the system can get right, not one it reliably does. Across every run, a failure
 was always a wrong refusal or a provider error: no question in either set produced an unsupported
 answer.
+
+## The forms set: a filled-in form and a handwritten scan
+
+Added on 13 Oct 2026, after two outside reviews of the system on a medical intake form and after
+OCR was added. 18 questions: 13 on the form (8 single-fact, 2 multi-part, 3 unanswerable) and 5 on
+the handwritten page (3 answerable, 2 unanswerable).
+
+**Status: not yet run with the AI model.** Two attempts on 13 Oct 2026 stopped on the provider's
+daily limit for all three models, and a run with provider errors is never saved. There is no
+pass count to report yet.
+
+What could be measured without the AI model is retrieval, on the full 588-chunk corpus:
+
+| Check | Form (13 questions) | Handwritten page (5 questions) |
+| --- | --- | --- |
+| Right document among the passages sent to the model | 10 / 10 answerable | 3 / 3 answerable |
+| The exact supporting text is in those passages | 10 / 10 | 2 / 3 |
+| Unanswerable questions stopped by the gate | 0 / 3 | 0 / 2 |
+
+Two things to read from this:
+
+- **One question cannot pass.** s03 asks for the date on the handwritten page. The page says
+  16-11-2024; the OCR read 16-11-2624. The question is kept in the set because it is what a
+  user would ask, and its failure measures the OCR, not the search.
+- **The gate stops none of the five unanswerable questions** (their best passages score 0.59 to
+  0.72, the gate is 0.40). That is expected: "What is the patient's blood type?" is close in
+  meaning to a patient form. Whether they are refused depends on the model saying the fact is not
+  there, which is exactly what the pending run has to show.
+
+Earlier spot checks on the form are described in step 8 of the history below. In one of them the
+weakest model gave the wrong phone number for the patient; that question (f08) is in the set.
 
 ## Evaluate on your own documents
 
@@ -205,7 +243,7 @@ real-set score is not a clean held-out number. No change was made to target r12 
 ## Retrieval and fusion evaluation (no LLM)
 
 Retrieval measured on its own, so a good or bad LLM cannot hide it. A chunk is relevant if it
-contains the gold evidence text for the question. 584 chunks, 13 questions per set. Full output,
+contains the gold evidence text for the question. 588 chunks, 13 questions per set. Full output,
 including nDCG@10, is in [`eval/retrieval_eval.md`](../eval/retrieval_eval.md).
 
 | Term | Meaning |
@@ -221,11 +259,11 @@ Real document (GDPR):
 
 | Retrieval | Recall@3 | Recall@5 | Recall@10 | MRR | nDCG@5 | Mean latency | P95 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| BM25 only | 0.54 | 0.54 | 0.54 | 0.49 | 0.48 | 2 ms | 3 ms |
-| Dense only | 0.81 | 0.96 | 1.00 | 0.80 | 0.82 | 20 ms | 27 ms |
-| Hybrid (BM25 + dense) | 0.81 | 0.81 | 0.96 | 0.79 | 0.76 | 23 ms | 29 ms |
-| **Dense + reranker (default)** | 0.88 | 0.96 | 1.00 | 0.78 | 0.80 | 723 ms | 1199 ms |
-| Hybrid + reranker | 0.88 | 0.96 | 0.96 | 0.78 | 0.80 | 2209 ms | 3659 ms |
+| BM25 only | 0.54 | 0.54 | 0.54 | 0.49 | 0.48 | 3 ms | 6 ms |
+| Dense only | 0.81 | 0.96 | 1.00 | 0.80 | 0.82 | 42 ms | 60 ms |
+| Hybrid (BM25 + dense) | 0.81 | 0.81 | 0.96 | 0.79 | 0.76 | 57 ms | 94 ms |
+| **Dense + reranker (default)** | 0.88 | 0.96 | 1.00 | 0.78 | 0.80 | 661 ms | 1325 ms |
+| Hybrid + reranker | 0.88 | 0.96 | 0.96 | 0.78 | 0.80 | 952 ms | 1468 ms |
 
 On the fictional documents every method reaches Recall@5 of 1.00 and an MRR of 0.94 to 0.96, so
 that set cannot tell them apart.
@@ -250,7 +288,7 @@ What this says:
 
 ## Read these numbers with care
 
-- **Small sets, written by me.** 59 questions in total. This shows the pipeline works as designed
+- **Small sets, written by me.** 77 questions in total. This shows the pipeline works as designed
   on two kinds of document; it is not a benchmark.
 - **The model already knows the GDPR.** A correct answer on the real set does not prove grounding
   by itself. The fictional set is what proves that. The real set shows retrieval, citation and
@@ -270,11 +308,12 @@ What this says:
 ```bash
 python eval/run_eval.py                   # test set, writes eval/results.md
 python eval/run_eval.py --dataset real    # real set, writes eval/results_real.md
+python eval/run_eval.py --dataset forms   # forms set, writes eval/results_forms.md
 python eval/run_eval.py --tune            # gate threshold sweep on the dev set (no LLM calls)
 python eval/run_eval.py --retrieval       # retrieval and fusion evaluation (no LLM calls)
 ```
 
-A full run costs roughly 30,000 to 50,000 tokens, so a 200,000-token daily quota covers only a
+A full run of one set costs roughly 30,000 to 50,000 tokens, so a 200,000-token daily quota covers only a
 handful. The CLI and `POST /eval` call the same `run_evaluation` function. The CLI uses a clean
 in-memory store, so it never touches the server's data. If a run is cut short by a provider error,
 the CLI prints the result but does not overwrite the saved one.
@@ -282,11 +321,11 @@ the CLI prints the result but does not overwrite the saved one.
 ## Automated tests
 
 ```bash
-pytest          # 181 tests, about 15 seconds, no API key or network needed
+pytest          # 185 tests, under 20 seconds, no API key or network needed
 ruff check .
 ```
 
-Latest run: **181 passed, 0 failed**. The full output is recorded in
+Latest run: **185 passed, 0 failed**. The full output is recorded in
 [`tests/RESULTS.md`](../tests/RESULTS.md). The same two commands run on every push
 (`.github/workflows/ci.yml`).
 

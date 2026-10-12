@@ -69,7 +69,7 @@ class EvalQuestion(BaseModel):
 
 class EvalRequest(BaseModel):
     questions: list[EvalQuestion] | None = None
-    dataset: str = Field(default="test", pattern="^(test|dev|real)$")
+    dataset: str = Field(default="test", pattern="^(test|dev|real|forms)$")
     top_k: int | None = Field(default=None, ge=1, le=20)
     judge: bool = Field(default=False, description="Also grade each answer with an LLM judge (one extra call each)")
 

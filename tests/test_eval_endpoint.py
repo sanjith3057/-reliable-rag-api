@@ -1,6 +1,6 @@
 import pytest
 
-from app.evaluation.evaluator import render_markdown
+from app.evaluation.evaluator import load_questions, render_markdown
 from app.evaluation.metrics import (
     evidence_found,
     evidence_ranks,
@@ -14,7 +14,7 @@ from app.evaluation.metrics import (
 from app.generation.llm_base import LLMTimeout
 from app.generation.providers import FakeLLM
 from app.schemas import EvalQuestion, EvalReport
-from tests.conftest import assert_error, make_client, upload
+from tests.conftest import ROOT, SAMPLE_DOCS, assert_error, make_client, upload
 
 SUMMARY_KEYS = {
     "total",
@@ -256,3 +256,14 @@ def test_summary_and_markdown_render():
     markdown = render_markdown(report)
     assert "| Abstention accuracy | 100% |" in markdown
     assert "| x | distractor | yes |" in markdown
+
+
+@pytest.mark.parametrize("dataset", ["dev", "test", "real", "forms"])
+def test_every_question_set_loads_and_names_only_bundled_documents(dataset):
+    bundled = {path.name for folder in (SAMPLE_DOCS, ROOT / "real_docs") for path in folder.iterdir()}
+
+    questions = load_questions(str(ROOT / "eval"), dataset)
+
+    assert questions
+    assert len({question.id for question in questions}) == len(questions)
+    assert {name for question in questions for name in question.expected_sources} <= bundled
