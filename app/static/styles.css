@@ -260,6 +260,10 @@ button, select, textarea { font: inherit; color: inherit; }
 .abstained .answer-text, .failed .answer-text { font-size: 16px; color: var(--ink-2); }
 .answer-why { padding: 0 18px 16px; margin-top: -8px; color: var(--ink-3); font-size: 13px; }
 
+.answer-warning {
+  margin: 0 18px 16px; padding: 8px 12px; border-radius: 8px;
+  background: var(--warn-soft); color: var(--warn); font-size: 13px;
+}
 .sources { border-top: 1px solid var(--line); background: var(--surface-2); padding: 14px 18px 16px; }
 .sources-title { font: 600 11px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 10px; }
 .source-list { display: grid; gap: 10px; }
@@ -290,6 +294,9 @@ button, select, textarea { font: inherit; color: inherit; }
 select {
   padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); font-size: 13px;
 }
+.check { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 13px; color: var(--ink-2); cursor: pointer; }
+.check input { accent-color: var(--accent); }
+#eval-note { margin-top: 6px; }
 #eval-meta { margin-top: 12px; font-family: var(--mono); }
 
 .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-top: 16px; }

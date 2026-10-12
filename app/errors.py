@@ -24,7 +24,7 @@ def error_response(code: str, message: str, status_code: int, headers: dict[str,
     return JSONResponse(status_code=status_code, content=body, headers=headers)
 
 
-_HTTP_CODES = {404: "NOT_FOUND", 405: "METHOD_NOT_ALLOWED"}
+_HTTP_CODES = {404: "NOT_FOUND", 405: "METHOD_NOT_ALLOWED", 413: "REQUEST_TOO_LARGE"}
 
 
 def register_error_handlers(app: FastAPI) -> None:

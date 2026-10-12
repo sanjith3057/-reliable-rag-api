@@ -7,9 +7,9 @@ came from, and when the documents do not contain the answer it says so instead o
 
 - **Grounded:** every answer carries the document name, page and the exact sentences it relied on.
 - **Abstains:** a retrieval gate and a citation validator stop unsupported answers before they reach you.
-- **Measured:** 20 / 20 on a fictional test set and 18 / 18 on a real 88-page PDF, from live runs you can repeat with `POST /eval`. The history of how it got there, including the runs that failed, is in the Evaluation section.
-- **Tested:** 129 automated tests that run offline with a fake LLM, including failure cases.
-- **Guarded:** optional API key, per-client rate limits, request size caps and security headers.
+- **Measured:** 20 / 20 on a fictional test set and 18 / 18 on a real 88-page PDF, from live runs you can repeat with `POST /eval`. You can also measure it on your own documents: it writes the question set for you. The history of how it got there, including the runs that failed, is in the Evaluation section.
+- **Tested:** 156 automated tests that run offline with a fake LLM, including failure cases.
+- **Guarded:** admin and read-only API keys, per-client rate limits, request size caps and security headers.
 
 ## Requirements checklist
 
@@ -24,7 +24,7 @@ came from, and when the documents do not contain the answer it says so instead o
 | At least 10 evaluation questions of three kinds | 20 test + 18 real-document + 21 dev questions in `eval/`: answerable, unanswerable, multi-evidence, plus distractors |
 | Clean, modular Python | One package per stage; the LLM, embedder and reranker sit behind interfaces |
 | Environment variables for keys and config | `app/config.py`, `.env.example` |
-| Tests for retrieval, API behaviour, failure cases | `tests/` (129 tests), results in [`tests/RESULTS.md`](tests/RESULTS.md) |
+| Tests for retrieval, API behaviour, failure cases | `tests/` (156 tests), results in [`tests/RESULTS.md`](tests/RESULTS.md) |
 | Docker support and setup documentation | `Dockerfile`, `docker-compose.yml`, Quick start below |
 | Existing LLM API, no training from scratch | Groq, OpenAI or Gemini through one HTTP client; embeddings are a pretrained local model |
 | Sample documents and evaluation questions | `sample_docs/` (8 fictional documents), `real_docs/` (one real PDF), `eval/questions_*.json` |
@@ -70,7 +70,8 @@ its similarity score, and run the evaluation. It is plain HTML, CSS and JavaScri
 | DELETE | `/documents/{doc_id}` | Remove one document |
 | POST | `/reset` | Clear the store |
 | GET | `/health` | Liveness and current configuration |
-| POST | `/eval` | Run an evaluation set through the live pipeline |
+| POST | `/eval` | Run an evaluation set through the live pipeline, optionally with an LLM judge |
+| POST | `/eval/generate` | Write an evaluation set from the documents in the library |
 | GET | `/eval/latest` | The most recent evaluation report |
 
 ```bash
@@ -94,7 +95,8 @@ curl -X POST http://localhost:8000/ask -H "Content-Type: application/json" \
       "score": 0.8213
     }
   ],
-  "abstain_reason": null
+  "abstain_reason": null,
+  "warnings": []
 }
 ```
 
@@ -109,9 +111,13 @@ curl -X POST http://localhost:8000/ask -H "Content-Type: application/json" \
   "answer": "The information is not available in the provided documents.",
   "answerable": false,
   "sources": [],
-  "abstain_reason": "model_abstained"
+  "abstain_reason": "model_abstained",
+  "warnings": []
 }
 ```
+
+`warnings` lists automatic checks the answer did not fully pass. Today there is one: a figure in the
+answer that does not appear in the cited passages.
 
 `abstain_reason` is `below_threshold` (nothing relevant was retrieved, no LLM call was made),
 `model_abstained` (related passages were found but none state the answer) or `no_valid_citations`
@@ -135,9 +141,9 @@ evaluation, 256 KB per JSON request.
 
 | Control | How |
 | --- | --- |
-| API key | Set `API_KEY` and every data endpoint requires a matching `X-API-Key` header (401 otherwise). The comparison is constant-time. The UI shell, `/health` and `/docs` stay public. Empty by default, so local use needs no setup. |
-| Rate limiting | Sliding window per client IP, with a separate budget for each kind of work: 30 questions, 20 uploads and 3 evaluations per minute, 120 for everything else. Over the limit returns 429 with a `Retry-After` header, before any LLM call is made. |
-| Request size | Bodies are refused from their declared length before they are read: 10 MB for uploads, 256 KB for JSON. PDFs are capped at 500 pages. |
+| API keys | Set `API_KEY` and every data endpoint requires a matching `X-API-Key` header (401 otherwise). An optional `READ_API_KEY` can only ask questions and list documents; uploading, deleting, resetting and evaluating return 403 without the admin key. Comparison is constant-time. The UI shell, `/health` and `/docs` stay public. Both are empty by default, so local use needs no setup. |
+| Rate limiting | Sliding window per client address, with a separate budget for each kind of work: 30 questions, 20 uploads and 3 evaluations per minute, 120 for everything else. Over the limit returns 429 with a `Retry-After` header, before any LLM call is made. `X-Forwarded-For` is ignored unless `TRUSTED_PROXY_HOPS` says how many proxies are yours, and then it is read from the right, so a caller cannot forge an address to dodge the limit. |
+| Request size | 10 MB for uploads, 256 KB for JSON. A body is refused from its declared length before it is read, and the bytes are also counted as they arrive, so a streamed upload with no `Content-Length` is cut off at the limit too. PDFs are capped at 500 pages. |
 | Upload handling | Only `.pdf`, `.txt`, `.md`. Filenames are reduced to a safe display name (no paths, no markup), because the name is stored, shown in the UI and written into the prompt. Files are parsed in memory and never written to disk or executed. |
 | Prompt injection | Document text sits inside `<source>` blocks it cannot close or forge; the system prompt declares sources to be data. An answer that carries no valid citation is discarded, so an obedient model still cannot leak an injected reply. |
 | Browser | `Content-Security-Policy` with no inline scripts or styles, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`. All document and model text is rendered with `textContent`. No CORS headers are sent, so other sites cannot call the API from a browser. |
@@ -193,7 +199,7 @@ app/
 eval/                dev, test and real question sets, CLI, results
 sample_docs/         8 fictional documents, including one prompt-injection document
 real_docs/           one real 88-page PDF (the GDPR regulation)
-tests/               129 tests and their recorded results
+tests/               156 tests and their recorded results
 ```
 
 ## Decisions and trade-offs
@@ -249,11 +255,16 @@ costs one small extra call and stays a refusal. If the split fails, the pipeline
 evidence it already has.
 
 **Failover between models.** Free tiers cap tokens per minute and per day for each model separately.
-When the main model is rate limited, calls go to a second model until the limit resets
-(`LLM_FALLBACK_MODEL`). If the provider says the wait is longer than 30 seconds, the request fails
+When the main model is rate limited, calls go to the next model in a chain until the limit resets
+(`LLM_FALLBACK_MODEL`, three models by default on Groq). If the provider says the wait is longer than 30 seconds, the request fails
 at once with `LLM_RATE_LIMITED` and a `Retry-After` header, because retrying cannot help. I found this
 the hard way: my own evaluation runs used up a 200,000-token daily quota and the first version just
 waited and returned a vague 503.
+
+**A number check on every answer.** An invented figure is the most common and most damaging kind of
+hallucination, and it is cheap to catch: every number in an answer must appear in a cited passage or
+in the question. A miss is reported as a warning, not a refusal, because a correct answer can contain
+a figure the model worked out, such as a difference between two values.
 
 **Excerpts without another LLM call.** The cited chunk is split into sentences, and the sentences
 closest to the question and answer are returned, ranked with the same embedder.
@@ -325,6 +336,47 @@ the two passages were not both retrieved, the model said the evidence was insuff
 refused. In this run the second pass found both and it passed, after 24 seconds. I count that as a
 question the system can get right, not one it reliably does. Across every run, a failure was always a
 wrong refusal or a provider error: no question in either set produced an unsupported answer.
+
+### Evaluate on your own documents
+
+The sets above only show how the system does on documents I chose. To measure it on yours, upload
+them and pick "My documents" in the Evaluate tab, or call the API:
+
+```bash
+curl -X POST http://localhost:8000/eval/generate -H "Content-Type: application/json" -d '{"n": 8}' > set.json
+curl -X POST http://localhost:8000/eval -H "Content-Type: application/json" \
+  -d "{\"questions\": $(jq .questions set.json), \"judge\": true}"
+```
+
+`/eval/generate` samples passages from the library and has the LLM write one question per passage,
+with the answer keyword and a supporting quote. A draft is kept only if that quote and keyword really
+are in the passage, so the gold labels cannot be invented. Three general-knowledge questions are added
+that a grounded system must refuse. With `"judge": true`, a second LLM call grades each answer for
+faithfulness (every claim is supported by the cited passages) and relevance.
+
+Result on a document the system was never tuned on, a 5-page design document for an IT service desk
+(10 chunks, not published here):
+
+| Metric | Value |
+| --- | --- |
+| Questions passed | 10 / 10 (7 generated, 3 general-knowledge traps) |
+| Retrieval hit@5 | 100% |
+| Abstention accuracy | 100% |
+| Citation correctness | 100% |
+| Answer keyword accuracy | 100% |
+| Faithfulness (LLM-judged) | 100% |
+| Answer relevance (LLM-judged) | 100% |
+
+That run was answered by `qwen/qwen3.8-27b`, the third model in the failover chain, because the
+other two had used up their daily quota. Limits of this number:
+
+- **Generated questions are easier than human ones.** Each comes from a single passage and tends to
+  reuse its wording, so it does not test multi-part questions or paraphrase.
+- **The judge is not independent.** It is the same model that wrote the answer, so it shares its
+  blind spots. Treat judged scores as a check for obvious unsupported claims, not as ground truth.
+- **The first run of this feature scored 25% on answer accuracy with every answer correct.** The
+  generated keywords were too literal ("four" when the answer said "4", or a whole sentence). I
+  fixed the generator and the matcher, not the answers; the judged faithfulness was 100% both times.
 
 ### How these numbers changed, and why
 
@@ -418,11 +470,11 @@ so it never touches the server's data.
 ## Tests
 
 ```bash
-pytest          # 129 tests, about 5 seconds, no API key or network needed
+pytest          # 156 tests, about 6 seconds, no API key or network needed
 ruff check .
 ```
 
-Latest run: **129 passed, 0 failed**. The full output is recorded in [`tests/RESULTS.md`](tests/RESULTS.md).
+Latest run: **156 passed, 0 failed**. The full output is recorded in [`tests/RESULTS.md`](tests/RESULTS.md).
 
 | Area | What is tested |
 | --- | --- |
@@ -436,49 +488,60 @@ Latest run: **129 passed, 0 failed**. The full output is recorded in [`tests/RES
 | LLM failures | Timeout returns 503 after 2 retries; recovery on retry; malformed reply; bad key fails fast; exhausted quota fails fast with a clear message; failover to a second model |
 | Provider client | Request shape, rate-limit and bad-JSON handling, timeouts, against a fake HTTP transport |
 | Configuration | `.env.example` matches the code defaults and holds no secrets |
-| Grounding | Gate skips the LLM; hallucinated citation stripped; uncited answer refused; abstention respected |
+| Grounding | Gate skips the LLM; hallucinated citation stripped; uncited answer refused; abstention respected; a figure not in the cited passage is flagged |
 | Prompt injection | Injected text stays inside its source block; an obedient model is still blocked |
 | Recursion | Depth cap, sub-question cap, no duplicate chunks, fallback when the split fails; second pass after an abstention |
+| Generated evaluation | Questions written from the library with verified gold labels; unverifiable drafts discarded; LLM judge; report survives a restart |
 | Evaluation | All metric keys present; refuses to run when the documents a set needs are missing; abstention scored correctly; passage-level retrieval check; rate-limited questions retried; empty list and over-50 rejected |
 | Errors | Every error response matches the one schema and carries the request ID |
-| Security | API key accepted and rejected; 429 with `Retry-After`; limited requests never reach the LLM; size caps; headers; hostile filenames |
+| Security | Admin key and read-only key; client address behind a proxy; streamed upload cut off at the limit; API key accepted and rejected; 429 with `Retry-After`; limited requests never reach the LLM; size caps; headers; hostile filenames |
 
 ## Limitations
 
-- **Small-corpus evaluation.** See the caveats above.
-- **Fixed-size chunks.** Tables and long lists can be split across chunks.
-- **No OCR.** Scanned PDFs are rejected with a clear error.
-- **The gate threshold belongs to one embedding model.** A different model needs
-  `python eval/run_eval.py --tune` run again. It is loose on purpose and only stops off-topic questions.
-- **The gate does not stop near-topic traps**; those rely on the model abstaining and the validator.
-- **Multi-part questions across distant sections can still fail**, as r12 did in one of two runs. The split is
-  triggered by a weak score or by the model abstaining, and neither guarantees every part is found.
-- **Free-tier quotas are easy to hit.** On Groq's free plan a model stops answering after about 200,000
-  tokens in a day. Failover to a second model softens this; it does not remove it.
-- **The reranker costs about 0.7 s per question on CPU** and adds a second model to the image.
+What this does not do, grouped by where it would bite.
+
+**Evaluation**
+
+- **The bundled sets are small and I wrote them.** 59 questions. They show the pipeline works as
+  designed on two kinds of document; they are not a benchmark.
+- **Generated sets are easier than human-written ones**, and the LLM judge is the same model that
+  answered. Both are useful for testing your own documents and both flatter the system somewhat.
+- **Evaluation runs inside the request.** A full run holds the HTTP connection open for a minute or
+  more. A job queue would be the fix.
+
+**Retrieval and answers**
+
+- **Fixed-size chunks.** A table or long list can be split across two chunks.
+- **Multi-part questions across distant sections can still fail**, as r12 did in one of two runs.
 - **Whole-document questions get partial answers.** "Summarise this document" is answered from the
-  5 best-matching chunks, not the whole file, so the summary covers only part of a long document.
-- **No LLM-judged metrics yet.** Faithfulness and answer relevance are checked by citation rules and
-  keyword match, not by a judge model (Ragas or similar).
-- **Evaluation runs synchronously**, so a full run holds the HTTP request open.
-- **The latest evaluation report is kept in memory** and is lost on restart.
-- **One shared API key, no users or roles.** Everyone with the key can read, upload and delete
-  everything. There is no per-user data separation.
-- **Rate limits are per process and per IP.** They reset on restart, are not shared between replicas,
-  and clients behind one NAT share a budget. `X-Forwarded-For` is ignored, so behind a reverse proxy
-  every request appears to come from the proxy until that is configured.
-- **No TLS.** The server speaks plain HTTP and expects a reverse proxy to terminate HTTPS.
-- **The size check trusts `Content-Length`.** A chunked upload without it is still capped, but only
-  after it has been received.
+  5 best-matching chunks, not the whole file.
+- **The number check is a warning and only covers figures.** It flags a number that is not in the
+  cited passages, including one the model correctly worked out. An invented claim with no number in
+  it is caught only by the citation rules and, in evaluation, by the judge.
+- **No OCR.** Scanned PDFs are rejected with a clear error.
+- **English only**, and the gate threshold belongs to this embedding model. A different model needs
+  `python eval/run_eval.py --tune` run again.
+- **No streaming.** The answer arrives whole, because it has to be validated before any of it is shown.
+
+**Operations and security**
+
+- **Free-tier quotas are finite.** Three models in a failover chain stretch a Groq free key a long
+  way, but each still stops after about 200,000 tokens a day.
+- **The reranker costs about 0.7 s per question on CPU** and adds a second model to the image.
+- **Two keys, not user accounts.** An admin key and a read-only key cover "who may change things",
+  but there are no per-user documents: everyone with a key sees the same library.
+- **Rate limits are per process.** They reset on restart and are not shared between replicas; that
+  needs a shared store such as Redis.
+- **No TLS.** The server speaks plain HTTP and expects a reverse proxy to terminate HTTPS. Set
+  `TRUSTED_PROXY_HOPS` when you add one, or every request will appear to come from the proxy.
 - **Prompt-injection defences reduce risk, they do not remove it.** A model can still be misled by
-  document text into a wrong but cited answer.
-- **No streaming.**
-- **English only**, because of the embedding model.
+  document text into a wrong answer that cites that text.
 
 ## Next steps
 
-- Evaluate on a larger, independently written corpus, and add RAGAS faithfulness scoring.
-- Check that each number in an answer appears in a cited passage.
-- Structure-aware chunking for tables and headings.
-- Background jobs for evaluation and large uploads.
+- A larger evaluation corpus written by someone else, with an independent judge model.
+- Structure-aware chunking that keeps tables whole and carries section headings into each chunk.
+- A map-reduce path for whole-document questions such as summaries.
+- Background jobs for evaluation and large uploads, with progress reporting.
+- Per-user libraries and accounts in place of shared keys.
 - QLoRA fine-tune of a small local model on distractor-heavy data (`finetune/README.md`).

@@ -4,6 +4,7 @@ import math
 import re
 import unicodedata
 
+from app.generation.validator import spell_numbers_as_digits
 from app.schemas import EvalQuestion, EvalResult, EvalSummary
 
 
@@ -15,7 +16,7 @@ def keywords_match(answer: str, keywords: list[str]) -> bool:
 
 def _plain(text: str) -> str:
     """Lower-case and fold typographic variants: models often write "10 000 000" with non-breaking spaces."""
-    text = unicodedata.normalize("NFKC", text).lower()
+    text = spell_numbers_as_digits(unicodedata.normalize("NFKC", text)).lower()
     return re.sub(r"[‐-―]", "-", " ".join(text.split()))
 
 
@@ -126,5 +127,7 @@ def summarise(results: list[EvalResult]) -> EvalSummary:
         citation_correctness=_rate([r.citation_ok for r in scored]),
         answer_keyword_accuracy=_rate([r.keywords_ok for r in scored]),
         distractor_resilience=_rate([r.distractor_ok for r in scored]),
+        faithfulness=_rate([r.faithful for r in scored]),
+        answer_relevance=_rate([r.relevant for r in scored]),
         avg_latency_ms=round(sum(r.latency_ms for r in results) / len(results), 1) if results else 0.0,
     )

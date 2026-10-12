@@ -11,9 +11,14 @@ from app.logging import get_logger, log_event
 
 logger = get_logger(__name__)
 
-# provider: (base URL, default model, default fallback model, settings field holding the key)
+# provider: (base URL, default model, default fallback models in order, settings field holding the key)
 PROVIDERS = {
-    "groq": ("https://api.groq.com/openai/v1", "openai/gpt-oss-120b", "openai/gpt-oss-20b", "groq_api_key"),
+    "groq": (
+        "https://api.groq.com/openai/v1",
+        "openai/gpt-oss-120b",
+        "openai/gpt-oss-20b,qwen/qwen3.8-27b",
+        "groq_api_key",
+    ),
     "openai": ("https://api.openai.com/v1", "gpt-4o-mini", "", "openai_api_key"),
     "gemini": ("https://generativelanguage.googleapis.com/v1beta/openai", "gemini-2.0-flash", "", "gemini_api_key"),
 }
@@ -197,8 +202,11 @@ def build_llm(settings: Settings) -> LLM:
         )
 
     model = settings.llm_model or default_model
-    # With an explicitly chosen model, only fall back if a fallback was explicitly chosen too.
-    fallback = settings.llm_fallback_model or ("" if settings.llm_model else default_fallback)
-    if fallback and fallback != model:
-        return FallbackLLM(client(model), client(fallback))
-    return client(model)
+    # With an explicitly chosen model, only fall back if fallbacks were explicitly chosen too.
+    fallbacks = settings.llm_fallback_model or ("" if settings.llm_model else default_fallback)
+    chain = [model] + [name.strip() for name in fallbacks.split(",") if name.strip() and name.strip() != model]
+    # Built from the last model backwards: each one hands over to the next while it is rate limited.
+    llm: LLM = client(chain[-1])
+    for name in reversed(chain[:-1]):
+        llm = FallbackLLM(client(name), llm)
+    return llm

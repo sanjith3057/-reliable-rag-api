@@ -3,7 +3,7 @@
 from app.errors import AppError
 from app.generation.providers import FakeLLM
 from app.ingestion.loaders import load_document
-from app.security import RateLimiter, sanitize_filename, sanitize_request_id
+from app.security import RateLimiter, client_ip, sanitize_filename, sanitize_request_id
 from tests.conftest import PASSWORD_DOC, SAMPLE_DOCS, assert_error, make_client, upload
 
 QUESTION = {"question": "How often must passwords be rotated?"}
@@ -168,3 +168,80 @@ def test_request_id_sanitising(client):
 
     forged = client.get("/health", headers={"x-request-id": "bad id with spaces"})
     assert forged.headers["x-request-id"] != "bad id with spaces"
+
+
+# ── Read-only key ────────────────────────────────────────────────────────────
+ADMIN = {"x-api-key": "admin-key"}
+READER = {"x-api-key": "reader-key"}
+
+
+def _two_key_client():
+    client = make_client(api_key="admin-key", read_api_key="reader-key")
+    assert client.post("/ingest", files={"file": ("a.txt", PASSWORD_DOC)}, headers=ADMIN).status_code == 201
+    return client
+
+
+def test_read_key_can_ask_and_list():
+    client = _two_key_client()
+    assert client.post("/ask", json=QUESTION, headers=READER).status_code == 200
+    assert client.get("/documents", headers=READER).status_code == 200
+
+
+def test_read_key_cannot_change_the_library_or_spend_eval_quota():
+    client = _two_key_client()
+    doc_id = client.get("/documents", headers=READER).json()["documents"][0]["doc_id"]
+
+    assert_error(client.post("/ingest", files={"file": ("b.txt", PASSWORD_DOC)}, headers=READER), 403, "FORBIDDEN")
+    assert_error(client.delete(f"/documents/{doc_id}", headers=READER), 403, "FORBIDDEN")
+    assert_error(client.post("/reset", headers=READER), 403, "FORBIDDEN")
+    assert_error(client.post("/eval", headers=READER), 403, "FORBIDDEN")
+    assert_error(client.post("/eval/generate", headers=READER), 403, "FORBIDDEN")
+    assert len(client.get("/documents", headers=ADMIN).json()["documents"]) == 1, "nothing was changed"
+
+
+def test_admin_key_can_do_everything_and_no_key_nothing():
+    client = _two_key_client()
+    assert client.post("/reset", headers=ADMIN).status_code == 200
+    assert_error(client.get("/documents"), 401, "UNAUTHORIZED")
+    assert_error(client.post("/ask", json=QUESTION), 401, "UNAUTHORIZED")
+
+
+# ── Client address behind a proxy ────────────────────────────────────────────
+class _FakeRequest:
+    def __init__(self, direct: str, forwarded: str = ""):
+        self.client = type("Client", (), {"host": direct})()
+        self.headers = {"x-forwarded-for": forwarded} if forwarded else {}
+
+
+def test_forwarded_header_is_ignored_unless_a_proxy_is_trusted():
+    spoofed = _FakeRequest("203.0.113.9", forwarded="1.2.3.4")
+    assert client_ip(spoofed, trusted_proxy_hops=0) == "203.0.113.9", "a caller cannot pick their own address"
+
+
+def test_client_address_is_read_from_the_right_of_the_forwarded_chain():
+    # The caller wrote "6.6.6.6" themselves; our one proxy then appended the address it really saw.
+    request = _FakeRequest("10.0.0.2", forwarded="6.6.6.6, 198.51.100.7")
+    assert client_ip(request, trusted_proxy_hops=1) == "198.51.100.7"
+    assert client_ip(_FakeRequest("10.0.0.2", forwarded="a, b, c"), trusted_proxy_hops=2) == "b"
+    assert client_ip(_FakeRequest("10.0.0.2"), trusted_proxy_hops=1) == "10.0.0.2", "no header: fall back"
+
+
+# ── Body size without Content-Length ─────────────────────────────────────────
+def test_chunked_upload_is_cut_off_at_the_limit():
+    """A streamed body carries no Content-Length, so only counting the bytes can stop it."""
+    client = make_client(max_file_mb=1)
+    boundary = "xBOUNDARYx"
+
+    def body():
+        yield f'--{boundary}\r\nContent-Disposition: form-data; name="file"; filename="big.txt"\r\n\r\n'.encode()
+        for _ in range(40):
+            yield b"a" * 65536  # 2.5 MB in total, against a 1 MB limit
+        yield f"\r\n--{boundary}--\r\n".encode()
+
+    response = client.post(
+        "/ingest", content=body(), headers={"content-type": f"multipart/form-data; boundary={boundary}"}
+    )
+
+    assert "content-length" not in response.request.headers
+    assert_error(response, 413, "REQUEST_TOO_LARGE")
+    assert client.get("/documents").json()["documents"] == []

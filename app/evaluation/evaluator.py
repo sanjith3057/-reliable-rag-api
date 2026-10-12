@@ -7,6 +7,7 @@ from pathlib import Path
 
 from app.errors import AppError
 from app.evaluation.metrics import score_question, summarise
+from app.generation.validator import parse_json_object
 from app.pipeline import RagService
 from app.schemas import EvalQuestion, EvalReport, EvalResult
 
@@ -18,10 +19,27 @@ def load_questions(eval_dir: str, dataset: str) -> list[EvalQuestion]:
     return [EvalQuestion(**item) for item in json.loads(path.read_text(encoding="utf-8"))]
 
 
+JUDGE_SYSTEM_PROMPT = """You are a strict grader of a question-answering system.
+
+You are given a question, the system's answer, and the passages the answer cited.
+
+Return one JSON object: {"faithful": true or false, "relevant": true or false, "unsupported": ["..."]}
+
+- "faithful" is true only if every factual claim in the answer is stated in the passages or follows
+  directly from them. Use only the passages, not your own knowledge.
+- "relevant" is true if the answer addresses what the question asked.
+- "unsupported" lists the claims, if any, that the passages do not support."""
+
+
 def run_evaluation(
-    service: RagService, questions: list[EvalQuestion], *, top_k: int | None = None, dataset: str = "custom"
+    service: RagService,
+    questions: list[EvalQuestion],
+    *,
+    top_k: int | None = None,
+    dataset: str = "custom",
+    judge: bool = False,
 ) -> EvalReport:
-    results = [_run_one(service, question, top_k) for question in questions]
+    results = [_run_one(service, question, top_k, judge) for question in questions]
     settings = service.settings
     return EvalReport(
         run_id=datetime.now().isoformat(timespec="seconds"),
@@ -33,13 +51,14 @@ def run_evaluation(
             "similarity_threshold": settings.similarity_threshold,
             "hybrid": settings.enable_hybrid,
             "reranker": settings.enable_reranker,
+            "judge": judge,
         },
         summary=summarise(results),
         results=results,
     )
 
 
-def _run_one(service: RagService, question: EvalQuestion, top_k: int | None) -> EvalResult:
+def _run_one(service: RagService, question: EvalQuestion, top_k: int | None, judge: bool = False) -> EvalResult:
     settings = service.settings
     outcome, error, start = None, None, time.perf_counter()
     for attempt in range(settings.eval_rate_limit_retries + 1):
@@ -75,7 +94,7 @@ def _run_one(service: RagService, question: EvalQuestion, top_k: int | None) -> 
             error=error.code if error else "UNKNOWN",
         )
     latency_ms = round((time.perf_counter() - start) * 1000, 1)
-    return score_question(
+    result = score_question(
         question,
         answerable=outcome.response.answerable,
         answer=outcome.response.answer,
@@ -84,6 +103,41 @@ def _run_one(service: RagService, question: EvalQuestion, top_k: int | None) -> 
         latency_ms=latency_ms,
         retrieved_texts=[item.chunk.text for item in outcome.retrieved],
     )
+    if judge and outcome.response.answerable:
+        result.faithful, result.relevant = _judge(service, question.question, outcome)
+    return result
+
+
+def _judge(service: RagService, question: str, outcome) -> tuple[bool | None, bool | None]:
+    """Ask the LLM whether the answer is supported by what it cited. None if the judge call fails."""
+    passages = "\n\n".join(f"[{number}] {item.chunk.text}" for number, item in enumerate(outcome.cited, start=1))
+    prompt = f"Question: {question}\n\nAnswer: {outcome.response.answer}\n\nPassages:\n{passages}"
+    try:
+        verdict = service.call_llm(JUDGE_SYSTEM_PROMPT, prompt, parse_json_object)
+    except AppError:
+        return None, None
+    faithful, relevant = verdict.get("faithful"), verdict.get("relevant")
+    return (faithful if isinstance(faithful, bool) else None, relevant if isinstance(relevant, bool) else None)
+
+
+def save_report(path: Path | None, report: EvalReport) -> None:
+    """Keep the latest report on disk so it survives a restart. Failure to write is not fatal."""
+    if path is None:
+        return
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(report.model_dump_json(), encoding="utf-8")
+    except OSError:
+        pass
+
+
+def load_report(path: Path | None) -> EvalReport | None:
+    if path is None or not path.is_file():
+        return None
+    try:
+        return EvalReport.model_validate_json(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
 
 
 def _unique(names) -> list[str]:
@@ -111,6 +165,14 @@ def render_markdown(report: EvalReport) -> str:
         f"| Citation correctness | {_fmt(s.citation_correctness)} |",
         f"| Answer keyword accuracy | {_fmt(s.answer_keyword_accuracy)} |",
         f"| Distractor resilience | {_fmt(s.distractor_resilience)} |",
+        *(
+            [
+                f"| Faithfulness (LLM-judged) | {_fmt(s.faithfulness)} |",
+                f"| Answer relevance (LLM-judged) | {_fmt(s.answer_relevance)} |",
+            ]
+            if report.config.get("judge")
+            else []
+        ),
         f"| Average latency | {s.avg_latency_ms:.0f} ms |",
         "",
         "| ID | Type | Passed | Answerable (expected / got) | Cited | Latency |",

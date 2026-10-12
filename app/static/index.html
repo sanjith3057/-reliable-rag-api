@@ -80,11 +80,12 @@
         <div class="eval-head">
           <div>
             <h3>Evaluation</h3>
-            <p class="hint">Runs a question set through the live pipeline with the real LLM. The sets are written against the sample docs, so load those first.</p>
+            <p class="hint">Runs a question set through the live pipeline with the real LLM.</p>
           </div>
           <div class="eval-controls">
             <label class="sr-only" for="dataset">Question set</label>
             <select id="dataset">
+              <option value="mine">My documents (questions written automatically)</option>
               <option value="test">Test set (fictional docs)</option>
               <option value="real">Real set (GDPR regulation PDF)</option>
               <option value="dev">Dev set (used for tuning)</option>
@@ -92,6 +93,11 @@
             <button id="run-eval" class="button primary" type="button">Run evaluation</button>
           </div>
         </div>
+        <label class="check">
+          <input id="judge" type="checkbox">
+          <span>Also grade each answer with an LLM judge (faithfulness and relevance; uses more quota)</span>
+        </label>
+        <p id="eval-note" class="hint"></p>
         <div id="eval-meta" class="hint"></div>
         <div id="eval-tiles" class="tiles"></div>
         <div class="table-wrap">

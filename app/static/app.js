@@ -305,6 +305,7 @@ async function ask() {
       const list = el("div", "source-list");
       result.sources.forEach((source) => list.append(renderSource(source)));
       sources.append(list);
+      for (const warning of result.warnings || []) body.append(el("div", "answer-warning", warning));
       body.append(sources);
     } else {
       card.className = "answer abstained";
@@ -344,7 +345,16 @@ const METRICS = [
   ["citation_correctness", "Citation correctness"],
   ["answer_keyword_accuracy", "Answer accuracy"],
   ["distractor_resilience", "Distractor resilience"],
+  ["faithfulness", "Faithfulness (judged)"],
+  ["answer_relevance", "Relevance (judged)"],
 ];
+
+const DATASET_NOTES = {
+  mine: "Writes questions from the documents in your library, checks each one against its source passage, then runs them. Works on any documents.",
+  test: "20 questions on the bundled fictional documents. Needs the sample docs loaded.",
+  real: "18 questions on the bundled 88-page GDPR PDF. Needs the sample docs loaded.",
+  dev: "Used for tuning, not reported. Needs the sample docs loaded.",
+};
 
 function tile(label, value, fraction) {
   const node = el("div", "tile");
@@ -364,15 +374,17 @@ function renderReport(report) {
   $("#eval-empty").hidden = true;
   const summary = report.summary;
   const config = report.config;
+  const name = report.dataset === "custom" ? "your documents" : `${report.dataset} set`;
   $("#eval-meta").textContent =
-    `${report.dataset} set · ${report.run_id} · ${config.llm} · k=${config.top_k} · gate ${config.similarity_threshold}`
+    `${name} · ${report.run_id} · ${config.llm} · k=${config.top_k} · gate ${config.similarity_threshold}`
     + `${config.hybrid ? " · hybrid" : ""}${config.reranker ? " · reranker" : ""}`;
 
   const tiles = $("#eval-tiles");
   tiles.replaceChildren(tile("Questions passed", `${summary.passed} / ${summary.total}`, summary.total ? summary.passed / summary.total : null));
   for (const [key, label] of METRICS) {
     const value = summary[key];
-    tiles.append(tile(label, value === null ? "n/a" : `${Math.round(value * 100)}%`, value));
+    if (value === null || value === undefined) continue; // not measured in this run
+    tiles.append(tile(label, `${Math.round(value * 100)}%`, value));
   }
   tiles.append(tile("Average latency", `${Math.round(summary.avg_latency_ms)} ms`, null));
 
@@ -414,13 +426,24 @@ function initEval() {
     button.disabled = true;
     button.textContent = "Running…";
     try {
-      renderReport(await postJson("/eval", { dataset: $("#dataset").value }));
+      const judge = $("#judge").checked;
+      if ($("#dataset").value === "mine") {
+        button.textContent = "Writing questions…";
+        const generated = await postJson("/eval/generate", { n: 8 });
+        button.textContent = "Running…";
+        renderReport(await postJson("/eval", { questions: generated.questions, judge }));
+      } else {
+        renderReport(await postJson("/eval", { dataset: $("#dataset").value, judge }));
+      }
     } catch (error) {
       showError(error);
     }
     button.disabled = false;
     button.textContent = "Run evaluation";
   });
+  const showNote = () => { $("#eval-note").textContent = DATASET_NOTES[$("#dataset").value] || ""; };
+  $("#dataset").addEventListener("change", showNote);
+  showNote();
 }
 
 // ── Tabs ────────────────────────────────────────────────────────────────

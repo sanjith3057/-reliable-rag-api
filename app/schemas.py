@@ -52,6 +52,7 @@ class AskResponse(BaseModel):
     abstain_reason: str | None = Field(
         default=None, description="below_threshold | model_abstained | no_valid_citations, when answerable is false"
     )
+    warnings: list[str] = Field(default=[], description="Automatic checks the answer did not fully pass")
 
 
 class EvalQuestion(BaseModel):
@@ -69,6 +70,17 @@ class EvalRequest(BaseModel):
     questions: list[EvalQuestion] | None = None
     dataset: str = Field(default="test", pattern="^(test|dev|real)$")
     top_k: int | None = Field(default=None, ge=1, le=20)
+    judge: bool = Field(default=False, description="Also grade each answer with an LLM judge (one extra call each)")
+
+
+class GenerateRequest(BaseModel):
+    n: int = Field(default=8, ge=1, le=15, description="How many questions to write from the library")
+    seed: int | None = Field(default=None, description="Fix this to sample the same passages again")
+
+
+class GenerateResponse(BaseModel):
+    questions: list[EvalQuestion]
+    skipped: int = Field(description="Drafts discarded because their evidence could not be verified in the passage")
 
 
 class EvalSummary(BaseModel):
@@ -79,6 +91,8 @@ class EvalSummary(BaseModel):
     citation_correctness: float | None
     answer_keyword_accuracy: float | None
     distractor_resilience: float | None
+    faithfulness: float | None = None  # LLM-judged, only when the run asked for a judge
+    answer_relevance: float | None = None
     avg_latency_ms: float
 
 
@@ -95,6 +109,8 @@ class EvalResult(BaseModel):
     citation_ok: bool | None
     keywords_ok: bool | None
     distractor_ok: bool | None
+    faithful: bool | None = None
+    relevant: bool | None = None
     latency_ms: float
     answer: str = ""
     error: str | None = None

@@ -9,6 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from app.api.routes import router
 from app.config import Settings, get_settings
 from app.errors import AppError, error_response, register_error_handlers
+from app.evaluation.evaluator import load_report
 from app.generation.llm_base import LLM
 from app.generation.providers import build_llm
 from app.logging import configure_logging, get_logger, log_event, set_request_id
@@ -19,6 +20,7 @@ from app.retrieval.vector_store import VectorStore
 from app.security import (
     SECURITY_HEADERS,
     UI_CONTENT_SECURITY_POLICY,
+    BodySizeLimit,
     RateLimiter,
     guard_request,
     sanitize_request_id,
@@ -74,8 +76,12 @@ def create_app(
         lifespan=lifespan,
     )
     app.state.service = build_service(settings, llm=llm, embedder=embedder, reranker=reranker)
-    app.state.latest_eval = None
+    # The latest evaluation report lives next to the vector store, so it survives a restart.
+    app.state.latest_eval_path = Path(settings.chroma_path) / "latest_eval.json" if settings.chroma_path else None
+    app.state.latest_eval = load_report(app.state.latest_eval_path)
     app.state.rate_limiter = RateLimiter()
+    # Added first so it sits inside the request middleware below, which turns its error into our schema.
+    app.add_middleware(BodySizeLimit, settings=settings)
 
     @app.middleware("http")
     async def request_context(request: Request, call_next):

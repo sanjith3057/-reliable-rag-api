@@ -24,6 +24,8 @@ SUMMARY_KEYS = {
     "citation_correctness",
     "answer_keyword_accuracy",
     "distractor_resilience",
+    "faithfulness",
+    "answer_relevance",
     "avg_latency_ms",
 }
 
@@ -134,6 +136,12 @@ def test_keyword_alternatives():
     assert keywords_match("It lasts six months.", ["6 months||six months"])
     assert keywords_match("18 days then 24 days", ["18", "24"])
     assert not keywords_match("18 days", ["18", "24"])
+
+
+def test_keywords_treat_number_words_and_digits_alike():
+    assert keywords_match("4", ["four"])
+    assert keywords_match("There are four actions.", ["4 actions"])
+    assert not keywords_match("5", ["four"])
 
 
 def test_keywords_ignore_typographic_spaces_and_hyphens():

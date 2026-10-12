@@ -78,3 +78,39 @@ def validate_answer(payload: dict, valid_labels: set[str]) -> ValidatedAnswer:
 
     clean = re.sub(r"\s*[\[(]S\d+(?:\s*,\s*S\d+)*[\])]", "", answer).strip()
     return ValidatedAnswer(True, clean, citations=kept, dropped_citations=dropped)
+
+
+_NUMBER = re.compile(r"\d+(?:[ \u00a0\u202f,.]\d+)*")
+
+
+_NUMBER_WORDS = {
+    word: str(value)
+    for value, word in enumerate(
+        ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve"]
+    )
+}
+_NUMBER_WORD = re.compile(r"\b(" + "|".join(_NUMBER_WORDS) + r")\b", flags=re.IGNORECASE)
+
+
+def spell_numbers_as_digits(text: str) -> str:
+    """Turn "four actions" into "4 actions", so a passage saying "four" supports an answer saying "4"."""
+    return _NUMBER_WORD.sub(lambda match: _NUMBER_WORDS[match.group().lower()], text)
+
+
+def _numbers(text: str) -> set[str]:
+    """Every figure in the text, with thousands separators removed: "20 000 000" and "1,200" compare equal."""
+    return {re.sub(r"[ \u00a0\u202f,]", "", match).rstrip(".") for match in _NUMBER.findall(text)}
+
+
+def unsupported_numbers(answer: str, question: str, cited_texts: list[str]) -> list[str]:
+    """Figures in the answer that appear neither in the cited passages nor in the question.
+
+    An invented number is the most common and most damaging kind of hallucination, and it is cheap
+    to catch. This is a warning, not a refusal: a correct answer may contain a figure the model
+    worked out (a difference or a total) that is not written anywhere.
+    """
+    # Number words are expanded on the source side only: "four" in a passage backs "4" in the answer.
+    known = _numbers(spell_numbers_as_digits(question))
+    for text in cited_texts:
+        known |= _numbers(spell_numbers_as_digits(text))
+    return sorted(_numbers(answer) - known)

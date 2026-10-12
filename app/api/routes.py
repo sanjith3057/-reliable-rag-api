@@ -1,7 +1,8 @@
 from fastapi import APIRouter, File, Request, UploadFile
 
 from app.errors import AppError
-from app.evaluation.evaluator import load_questions, run_evaluation
+from app.evaluation.evaluator import load_questions, run_evaluation, save_report
+from app.evaluation.generator import generate_questions
 from app.pipeline import RagService
 from app.schemas import (
     AskRequest,
@@ -10,6 +11,8 @@ from app.schemas import (
     ErrorResponse,
     EvalReport,
     EvalRequest,
+    GenerateRequest,
+    GenerateResponse,
     IngestResponse,
 )
 
@@ -114,9 +117,21 @@ def evaluate(request: Request, body: EvalRequest | None = None) -> EvalReport:
             409,
         )
 
-    report = run_evaluation(service, questions, top_k=body.top_k, dataset=dataset)
+    report = run_evaluation(service, questions, top_k=body.top_k, dataset=dataset, judge=body.judge)
     request.app.state.latest_eval = report
+    save_report(request.app.state.latest_eval_path, report)
     return report
+
+
+@router.post("/eval/generate", tags=["evaluation"])
+def generate_eval(request: Request, body: GenerateRequest | None = None) -> GenerateResponse:
+    """Write a question set from the documents in the library, so the system can be measured on any corpus.
+
+    Pass the returned `questions` to POST /eval. Three general-knowledge questions are added that a
+    grounded system must refuse.
+    """
+    body = body or GenerateRequest()
+    return generate_questions(_service(request), n=body.n, seed=body.seed)
 
 
 @router.get("/eval/latest", tags=["evaluation"])

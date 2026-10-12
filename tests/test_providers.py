@@ -6,7 +6,7 @@ import httpx
 import pytest
 
 from app.generation.llm_base import LLMError, LLMTimeout
-from app.generation.providers import FallbackLLM, OpenAICompatibleLLM, _extra_params, build_llm
+from app.generation.providers import FakeLLM, FallbackLLM, OpenAICompatibleLLM, _extra_params, build_llm
 from tests.conftest import make_settings
 
 
@@ -98,6 +98,25 @@ def test_groq_gets_a_fallback_model_by_default():
     llm = build_llm(make_settings(llm_provider="groq", groq_api_key="k"))
     assert isinstance(llm, FallbackLLM)
     assert llm.model == "openai/gpt-oss-120b"
+
+
+def test_fallbacks_form_a_chain_tried_in_order():
+    now = [0.0]
+    limited = LLMError("429", retry_after=600, rate_limited=True)
+    first, second, third = FakeLLM([limited]), FakeLLM([limited]), FakeLLM(["from the third"])
+    first.model, second.model, third.model = "a", "b", "c"
+    chain = FallbackLLM(first, FallbackLLM(second, third, clock=lambda: now[0]), clock=lambda: now[0])
+
+    assert chain.complete("s", "u") == "from the third"
+    assert chain.model == "c", "reports the model that will actually answer"
+    assert chain.complete("s", "u") == "from the third"
+    assert len(first.calls) == len(second.calls) == 1, "limited models are left alone until they reset"
+
+
+def test_fallback_list_is_read_from_settings():
+    llm = build_llm(make_settings(llm_provider="groq", groq_api_key="k", llm_model="m1", llm_fallback_model="m2, m3"))
+    assert isinstance(llm, FallbackLLM)
+    assert [llm._primary.model, llm._fallback._primary.model, llm._fallback._fallback.model] == ["m1", "m2", "m3"]
 
 
 def test_an_explicit_model_has_no_implicit_fallback():

@@ -18,6 +18,7 @@ from app.generation.validator import (
     NOT_AVAILABLE,
     parse_answer,
     parse_sub_questions,
+    unsupported_numbers,
     validate_answer,
 )
 from app.ingestion.chunker import chunk_pages
@@ -38,6 +39,7 @@ logger = get_logger(__name__)
 class AskOutcome:
     response: AskResponse
     retrieved: list[ScoredChunk] = field(default_factory=list)
+    cited: list[ScoredChunk] = field(default_factory=list)
     trace: RetrievalTrace = field(default_factory=RetrievalTrace)
     timings: dict = field(default_factory=dict)
 
@@ -161,14 +163,21 @@ class RagService:
                 )
                 for label in verdict.citations
             ]
-        response = AskResponse(answer=verdict.answer, answerable=True, sources=sources)
-        return self._finish(question, response, chunks, trace, timings)
+        cited = [labels[label] for label in verdict.citations]
+        warnings = []
+        loose = unsupported_numbers(verdict.answer, question, [item.chunk.text for item in cited])
+        if loose:
+            warnings.append(
+                f"These figures are not in the cited passages: {', '.join(loose)}. Check them against the evidence."
+            )
+        response = AskResponse(answer=verdict.answer, answerable=True, sources=sources, warnings=warnings)
+        return self._finish(question, response, chunks, trace, timings, cited)
 
     def _generate(self, question: str, chunks: list[ScoredChunk], timings: dict):
         """One grounded-answer attempt: prompt, call, validate."""
         prompt, labels = build_answer_prompt(question, chunks)
         with timed(timings, "generation_ms"):
-            payload = self._call_llm(SYSTEM_PROMPT, prompt, parse_answer)
+            payload = self.call_llm(SYSTEM_PROMPT, prompt, parse_answer)
         verdict = validate_answer(payload, set(labels))
         # Reasoning stays in the logs; the user only gets the answer and its sources.
         log_event(
@@ -200,7 +209,7 @@ class RagService:
             merged.setdefault(item.chunk.chunk_id, item)
         return list(merged.values())[: self.settings.max_context_chunks]
 
-    def _finish(self, question, response, chunks, trace, timings) -> AskOutcome:
+    def _finish(self, question, response, chunks, trace, timings, cited=()) -> AskOutcome:
         log_event(
             logger,
             "ask",
@@ -211,12 +220,13 @@ class RagService:
             depth=trace.depth_reached,
             sub_questions=trace.sub_questions,
             cited=[source.doc_name for source in response.sources],
+            warnings=response.warnings,
             **timings,
         )
-        return AskOutcome(response=response, retrieved=chunks, trace=trace, timings=timings)
+        return AskOutcome(response=response, retrieved=chunks, cited=list(cited), trace=trace, timings=timings)
 
     # ── LLM helpers ──────────────────────────────────────────────────────────
-    def _call_llm(self, system: str, user: str, parse):
+    def call_llm(self, system: str, user: str, parse):
         return complete_with_retries(
             self.llm,
             system,
@@ -230,7 +240,7 @@ class RagService:
     def _decompose(self, question: str) -> list[str]:
         """Ask the LLM for sub-questions. If that fails, carry on with the evidence we already have."""
         try:
-            return self._call_llm(DECOMPOSE_SYSTEM_PROMPT, build_decompose_prompt(question), parse_sub_questions)
+            return self.call_llm(DECOMPOSE_SYSTEM_PROMPT, build_decompose_prompt(question), parse_sub_questions)
         except AppError:
             log_event(logger, "decompose_failed")
             return []

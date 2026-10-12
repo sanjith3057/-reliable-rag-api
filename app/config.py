@@ -11,7 +11,8 @@ class Settings(BaseSettings):
     # LLM
     llm_provider: str = "groq"  # groq | gemini | openai | fake
     llm_model: str = ""  # empty = the provider's default model
-    llm_fallback_model: str = ""  # used while the main model is rate limited; empty = the provider's default
+    # Tried in order while the main model is rate limited; comma-separated. Empty = the provider's defaults.
+    llm_fallback_model: str = ""
     llm_reasoning_effort: str = "low"  # only sent to models that accept it (gpt-oss); empty = model default
     groq_api_key: str = ""
     gemini_api_key: str = ""
@@ -66,7 +67,11 @@ class Settings(BaseSettings):
     max_json_kb: int = 256  # request body cap for everything that is not a file upload
 
     # Security. An empty API key leaves the API open (fine for local use); set one before exposing it.
-    api_key: str = ""
+    api_key: str = ""  # full access: upload, delete, reset, evaluate, ask
+    read_api_key: str = ""  # optional second key that can only ask questions and list documents
+    # How many reverse proxies sit in front of the app. 0 = none, so X-Forwarded-For is ignored
+    # (any caller can forge it). Set to 1 behind a single proxy such as nginx or a cloud load balancer.
+    trusted_proxy_hops: int = 0
     rate_limit_enabled: bool = True
     rate_limit_ask_per_min: int = 30
     rate_limit_ingest_per_min: int = 20
