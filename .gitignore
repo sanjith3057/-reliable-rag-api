@@ -1,0 +1,31 @@
+# secrets
+.env
+
+# vector store and eval scratch
+chroma_data/
+eval/latest.json
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# private planning notes, not part of the submission
+rag-assessment-final-plan.md
+
+# local agent tooling
+.agent/
+.ralphy/
+.claude/
+.playwright-mcp/

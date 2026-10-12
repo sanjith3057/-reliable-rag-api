@@ -1,0 +1,27 @@
+LUMENFOLD CLOUD PRICING SHEET (2025)
+
+Lumenfold Cloud is the inventory management software that pairs with Orbit scanners. This sheet covers software subscriptions only. Hardware is quoted separately by the sales team.
+
+PLANS
+
+Starter plan: 29 euros per user per month. The Starter plan supports up to 10 users and includes 5 GB of storage.
+
+Team plan: 59 euros per user per month. The Team plan supports up to 100 users and includes 50 GB of storage. Single sign-on is not included in the Team plan.
+
+Enterprise plan: 99 euros per user per month. The Enterprise plan has no user limit, includes single sign-on and a dedicated support manager, and carries a 99.95 percent uptime SLA.
+
+DISCOUNTS
+
+Customers who choose annual billing receive a 15 percent discount on any plan. Registered non-profit organisations receive a 30 percent discount. The two discounts cannot be combined.
+
+TRIAL AND REFUNDS
+
+Every plan starts with a free trial of 21 days. No payment card is needed to start the trial. Refunds are available within 30 days of purchase. After 30 days, subscriptions are non-refundable.
+
+SUPPORT
+
+Starter plan support is by email with a response within 48 hours. Team plan support responds within 24 hours. Enterprise plan support responds within 1 hour, around the clock.
+
+OVERAGES
+
+Storage used beyond the plan allowance is billed at 0.40 euros per GB per month.

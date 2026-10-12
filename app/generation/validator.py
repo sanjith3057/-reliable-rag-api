@@ -1,0 +1,80 @@
+"""Checks on the model's reply. Nothing reaches the user unless it survives these."""
+
+import json
+import re
+from dataclasses import dataclass, field
+
+from app.generation.llm_base import LLMBadResponse
+
+NOT_AVAILABLE = "The information is not available in the provided documents."
+ABSTAIN_SENTINEL = "INSUFFICIENT_CONTEXT"
+
+
+@dataclass
+class ValidatedAnswer:
+    answerable: bool
+    answer: str
+    citations: list[str] = field(default_factory=list)  # valid source labels, in cited order
+    abstain_reason: str | None = None
+    dropped_citations: list[str] = field(default_factory=list)
+
+
+def parse_json_object(raw: str) -> dict:
+    """Parse the model's reply as a JSON object, tolerating code fences and stray prose around it."""
+    text = (raw or "").strip()
+    start, end = text.find("{"), text.rfind("}")
+    if start == -1 or end <= start:
+        raise LLMBadResponse("reply contained no JSON object")
+    try:
+        payload = json.loads(text[start : end + 1])
+    except json.JSONDecodeError as exc:
+        raise LLMBadResponse("reply was not valid JSON") from exc
+    if not isinstance(payload, dict):
+        raise LLMBadResponse("reply was not a JSON object")
+    return payload
+
+
+def parse_answer(raw: str) -> dict:
+    payload = parse_json_object(raw)
+    if "answer" not in payload or "answerable" not in payload:
+        raise LLMBadResponse("reply is missing 'answer' or 'answerable'")
+    return payload
+
+
+def parse_sub_questions(raw: str) -> list[str]:
+    items = parse_json_object(raw).get("sub_questions", [])
+    return [item.strip() for item in items if isinstance(item, str) and item.strip()] if isinstance(items, list) else []
+
+
+def normalise_label(value) -> str | None:
+    match = re.fullmatch(r"\[?\s*[sS]?(\d+)\s*\]?", str(value).strip())
+    return f"S{int(match.group(1))}" if match else None
+
+
+def validate_answer(payload: dict, valid_labels: set[str]) -> ValidatedAnswer:
+    answer = str(payload.get("answer") or "").strip()
+    if payload.get("answerable") is not True or not answer or ABSTAIN_SENTINEL in answer.upper():
+        return ValidatedAnswer(False, NOT_AVAILABLE, abstain_reason="model_abstained")
+
+    # Sources the model itself judged to be distractors or irrelevant cannot back the answer.
+    rejected = set()
+    for entry in payload.get("evidence_check") or []:
+        if isinstance(entry, dict) and str(entry.get("verdict", "")).strip().lower() in {"distractor", "irrelevant"}:
+            rejected.add(normalise_label(entry.get("source")))
+
+    kept: list[str] = []
+    dropped: list[str] = []
+    raw_citations = payload.get("citations")
+    for raw in raw_citations if isinstance(raw_citations, list) else []:
+        label = normalise_label(raw)
+        if label in valid_labels and label not in rejected:
+            if label not in kept:
+                kept.append(label)
+        else:
+            dropped.append(str(raw))
+
+    if not kept:
+        return ValidatedAnswer(False, NOT_AVAILABLE, abstain_reason="no_valid_citations", dropped_citations=dropped)
+
+    clean = re.sub(r"\s*[\[(]S\d+(?:\s*,\s*S\d+)*[\])]", "", answer).strip()
+    return ValidatedAnswer(True, clean, citations=kept, dropped_citations=dropped)

@@ -1,0 +1,16 @@
+# Real evaluation document
+
+`gdpr_regulation_2016_679.pdf` is Regulation (EU) 2016/679, the General Data Protection Regulation,
+as published in the Official Journal of the European Union (88 pages).
+
+Source: EUR-Lex, https://eur-lex.europa.eu/eli/reg/2016/679/oj  
+© European Union. Reuse is authorised under Commission Decision 2011/833/EU, provided the source is
+acknowledged.
+
+It is here because the fictional documents in `sample_docs/` are short and clean. This one is a long,
+dense, real PDF with two-column recitals, footnotes and cross-references, so retrieval on it is not
+trivial. `eval/questions_real.json` is written against it.
+
+One caveat: an LLM already knows the GDPR from training, so a correct answer here does not by itself
+prove grounding. That is what the fictional documents are for. This document tests retrieval quality
+and citation on real text, and the unanswerable questions test abstention on a topic the model knows.
