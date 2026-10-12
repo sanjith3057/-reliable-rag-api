@@ -44,7 +44,7 @@ docker compose up --build
 ```
 
 The first build takes several minutes: it installs PyTorch (CPU only) and downloads the two models
-into the image, which ends up at about 0.8 GB. After that the container starts offline in seconds.
+into the image, which ends up at about 3.8 GB. After that the container starts offline in seconds.
 
 ### Option 2: Python on your machine
 
@@ -64,7 +64,8 @@ The first start downloads two small models (about 220 MB), so give it a minute.
 
 Open **http://localhost:8000** in a browser.
 
-1. Click **Load sample docs** (or **Add documents** to upload your own PDF, TXT or Markdown files).
+1. Click **Load sample docs** (or **Add documents** to upload your own PDF, TXT or Markdown files;
+   scanned PDFs work too).
 2. Type a question and press **Ask**.
 3. Read the answer and the evidence under it.
 4. Open the **Evaluate** tab to measure how well it does.
@@ -133,7 +134,7 @@ not been re-run since. One question on the GDPR set has passed in some runs and 
 The full numbers, the runs that went badly and what was changed are in
 [Evaluation and tests](docs/EVALUATION.md).
 
-There are also 172 automated tests. They run in about 6 seconds with no API key and no internet.
+There are also 181 automated tests. They run in about 15 seconds with no API key and no internet.
 
 ```bash
 pytest
@@ -182,7 +183,7 @@ docs/                user guide, system design, evaluation, diagrams
 eval/                question sets and recorded results
 sample_docs/         8 made-up company documents to try it with
 real_docs/           one real 88-page PDF (the GDPR regulation)
-tests/               172 automated tests and their recorded results
+tests/               181 automated tests and their recorded results
 Dockerfile, docker-compose.yml
 ```
 
@@ -190,7 +191,7 @@ Dockerfile, docker-compose.yml
 
 | Requirement in the brief | Where it is met |
 | --- | --- |
-| Ingest PDF, TXT, Markdown and split into chunks | `POST /ingest`, `app/ingestion/` |
+| Ingest PDF, TXT, Markdown and split into chunks | `POST /ingest`, `app/ingestion/` (scanned PDF pages are read with OCR) |
 | Semantic search with embeddings and a vector store | `app/retrieval/` (`bge-small-en-v1.5`, ChromaDB) |
 | LLM answers grounded in retrieved content | `app/pipeline.py`, `app/generation/prompt.py` |
 | Evidence: document names and excerpts | `sources` on every answer: document, page, excerpt, score |
@@ -199,7 +200,7 @@ Dockerfile, docker-compose.yml
 | At least 10 evaluation questions of three kinds | 59 questions in `eval/`: answerable, unanswerable, multi-evidence, distractor |
 | Clean, modular Python | One package per stage; models sit behind interfaces |
 | Environment variables for keys and config | `app/config.py`, `.env.example` |
-| Tests for retrieval, API behaviour, failure cases | `tests/` (172 tests), results in [`tests/RESULTS.md`](tests/RESULTS.md) |
+| Tests for retrieval, API behaviour, failure cases | `tests/` (181 tests), results in [`tests/RESULTS.md`](tests/RESULTS.md) |
 | Docker support and setup documentation | `Dockerfile`, `docker-compose.yml`, "Run it" above |
 | Existing LLM API, no training from scratch | Groq, OpenAI or Gemini; the embedding model is pretrained |
 | Sample documents and evaluation questions | `sample_docs/`, `real_docs/`, `eval/questions_*.json` |
@@ -208,7 +209,9 @@ Dockerfile, docker-compose.yml
 
 ## Limitations
 
-- **Scanned PDFs do not work.** The file must contain real text, not photos of pages.
+- **Scanned PDFs are read with OCR, which makes mistakes.** Clean printed scans read well. Handwriting
+  and skewed photos do not: on a handwritten cover page it read "Data Engineering" as "Dota
+  Engineguing". A scan is limited to 25 pages and takes a few seconds a page.
 - **English only.**
 - **Summaries work, but a summary of a long document can miss details.** "Summarise this document"
   reads about 8 passages spread evenly across the library, not every page.

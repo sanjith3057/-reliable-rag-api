@@ -8,3 +8,5 @@ pypdf==6.20.0
 chromadb==1.5.9
 sentence-transformers==6.1.0
 rank-bm25==0.2.2
+rapidocr-onnxruntime==1.4.4
+pypdfium2==5.14.0

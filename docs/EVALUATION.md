@@ -19,7 +19,7 @@ How the system was measured, what the numbers are, and how much to trust them.
 | 20 questions on made-up company documents | 19 / 20 on the last complete run; the failing question is fixed and re-checked, a full re-run is pending |
 | 18 questions on the 88-page GDPR regulation | 18 / 18 |
 | 10 generated questions on a document never used for tuning | 10 / 10 |
-| 172 automated tests | 172 passed |
+| 181 automated tests | 181 passed |
 
 Every evaluation number comes from a live run: real retrieval, the real LLM, no mocks. The sets are
 small and I wrote most of them, so this shows the pipeline works as designed. It is not a benchmark.
@@ -31,7 +31,7 @@ There are two kinds of check in this project, and they answer different question
 | Question | Are the answers good? | Does the code do what it should? |
 | Uses the real LLM | Yes | No, a scripted fake |
 | Needs a key and quota | Yes | No |
-| Time | Minutes | About 6 seconds |
+| Time | Minutes | About 15 seconds |
 | Run with | `python eval/run_eval.py` or the Evaluate tab | `pytest` |
 
 ## The question sets
@@ -282,11 +282,11 @@ the CLI prints the result but does not overwrite the saved one.
 ## Automated tests
 
 ```bash
-pytest          # 172 tests, about 6 seconds, no API key or network needed
+pytest          # 181 tests, about 15 seconds, no API key or network needed
 ruff check .
 ```
 
-Latest run: **172 passed, 0 failed**. The full output is recorded in
+Latest run: **181 passed, 0 failed**. The full output is recorded in
 [`tests/RESULTS.md`](../tests/RESULTS.md). The same two commands run on every push
 (`.github/workflows/ci.yml`).
 
@@ -297,6 +297,7 @@ Latest run: **172 passed, 0 failed**. The full output is recorded in
 | Similarity | Distance converts correctly; a close match outscores a far one |
 | Retrieval | A known question returns the expected chunk; PDF page numbers; BM25 fusion; reranking; chunks next to a hit are added, gaps between hits first |
 | API | Ingest then ask end to end; list, delete, reset |
+| Scanned PDFs | A picture of text is uploaded, read with the real OCR model and found by asking; typed PDFs never reach OCR; a scan over the page limit is refused whole; clear errors when nothing is recognised or the OCR packages are missing |
 | Input failures | Unsupported type, empty file, corrupt PDF, oversize file, empty or too-long question |
 | State failures | Asking with no documents |
 | LLM failures | Timeout returns 503 after 2 retries; recovery on retry; malformed reply; bad key fails fast; exhausted quota fails fast with a clear message; failover to a second model |

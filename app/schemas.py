@@ -18,6 +18,7 @@ class IngestResponse(BaseModel):
     doc_name: str
     chunks: int
     pages: int
+    ocr_pages: int = Field(default=0, description="Scanned pages whose text was read with OCR")
     status: str = Field(description="created | replaced (same content re-ingested) | updated (same name, new content)")
 
 

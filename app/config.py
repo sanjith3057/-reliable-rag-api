@@ -69,6 +69,10 @@ class Settings(BaseSettings):
     # Limits
     max_file_mb: int = 10
     max_pdf_pages: int = 500
+    # Scanned PDF pages (no text layer) are read with a local OCR model. It takes a few seconds a page
+    # on a CPU, hence the separate, lower page limit.
+    enable_ocr: bool = True
+    max_ocr_pages: int = 25
     max_question_chars: int = 1000
     max_eval_questions: int = 50
     max_json_kb: int = 256  # request body cap for everything that is not a file upload

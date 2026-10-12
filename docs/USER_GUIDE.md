@@ -32,6 +32,7 @@ kept only until you close the browser tab.
 | --- | --- |
 | PDF, TXT, Markdown (`.md`) | 10 MB per file |
 | PDFs with real text | 500 pages per PDF |
+| Scanned PDFs (photos of pages) | 25 pages per PDF; read with OCR, a few seconds a page |
 
 **The samples.** Click **Load sample docs** to add 9 demo documents: 8 short documents from a
 made-up company called Lumenfold, and the 88-page GDPR regulation. This takes about a minute.
@@ -161,7 +162,8 @@ Answer accuracy is lower, this is usually why. Check the row before trusting the
 | What you see | What it means | What to do |
 | --- | --- | --- |
 | "Only PDF, TXT, MD are accepted" | The file type is not supported | Convert the file to PDF or text |
-| "No text could be extracted" | The PDF is scanned images, not text | Use a PDF with selectable text; scanned pages are not supported |
+| "No text could be extracted" | The file is blank, or it is a scan in which no text could be recognised | Use a clearer scan, or a PDF with selectable text |
+| "Scanned PDFs are limited to 25 pages" | The PDF is a scan and is too long to read with OCR | Split it into parts, or raise `MAX_OCR_PAGES` |
 | "File exceeds the 10 MB limit" | The file is too big | Split it or compress it |
 | "PDFs are limited to 500 pages" | The PDF is too long | Split it into parts |
 | "No documents have been ingested yet" | The library is empty | Add a document first |

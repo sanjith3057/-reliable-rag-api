@@ -53,7 +53,7 @@ Three things sit behind interfaces so they can be swapped without touching the p
 
 | Step | Detail |
 | --- | --- |
-| Read | PDF through `pypdf` page by page; TXT and Markdown as UTF-8. Parsed in memory, never written to disk. |
+| Read | PDF through `pypdf` page by page; TXT and Markdown as UTF-8. A PDF page with no text layer (a scan) is rendered with `pypdfium2` and read by a local OCR model (RapidOCR). Parsed in memory, never written to disk. |
 | Fingerprint | `doc_id` is the first 16 hex characters of the SHA-256 of the file bytes. Same bytes replace the same document. A different file under an existing name replaces the old version. |
 | Split | Recursive chunker: 800 characters with 120 overlap, breaking at a paragraph, then a line, then a sentence, then a word. |
 | Embed | Each chunk becomes a 384-dimension vector. |
@@ -191,7 +191,7 @@ Every error has one shape:
 | 409 | `NO_DOCUMENTS`, `EVAL_DOCUMENTS_MISSING` |
 | 413 | `FILE_TOO_LARGE`, `REQUEST_TOO_LARGE` |
 | 415 | `UNSUPPORTED_FILE_TYPE` |
-| 422 | `EMPTY_FILE`, `NO_TEXT_EXTRACTED`, `UNREADABLE_FILE`, `TOO_MANY_PAGES`, `EMPTY_QUESTION`, `QUESTION_TOO_LONG`, `EMPTY_QUESTION_LIST`, `TOO_MANY_QUESTIONS` |
+| 422 | `EMPTY_FILE`, `NO_TEXT_EXTRACTED`, `UNREADABLE_FILE`, `TOO_MANY_PAGES`, `TOO_MANY_SCANNED_PAGES`, `OCR_UNAVAILABLE`, `EMPTY_QUESTION`, `QUESTION_TOO_LONG`, `EMPTY_QUESTION_LIST`, `TOO_MANY_QUESTIONS` |
 | 429 | `RATE_LIMITED` (with `Retry-After`) |
 | 503 | `LLM_RATE_LIMITED` (with `Retry-After`), `LLM_UNAVAILABLE` |
 
@@ -222,6 +222,7 @@ The most useful ones:
 | `TRUSTED_PROXY_HOPS` | 0 | Reverse proxies in front of the app |
 | `RATE_LIMIT_ASK_PER_MIN` | 30 | Also `_INGEST_` 20, `_EVAL_` 3, `_DEFAULT_` 120 |
 | `MAX_FILE_MB` / `MAX_PDF_PAGES` | 10 / 500 | Upload limits |
+| `ENABLE_OCR` / `MAX_OCR_PAGES` | true / 25 | Read scanned PDF pages with OCR, and how many per file |
 
 ## Security
 
@@ -410,7 +411,7 @@ What this does not do, grouped by where it would bite.
 - **The number check is a warning and only covers figures.** It flags a number that is not in the
   cited passages, including one the model correctly worked out. An invented claim with no number in
   it is caught only by the citation rules and, in evaluation, by the judge.
-- **No OCR.** Scanned PDFs are rejected with a clear error.
+- **OCR is basic.** Scanned pages are read by a small local model: fine for clean print, poor for handwriting, skewed photos and tables. Recognised text is not corrected, so a misread word cannot be found by search. A scan is limited to 25 pages because each page takes a few seconds on a CPU.
 - **English only**, and the gate threshold belongs to this embedding model. A different model needs
   `python eval/run_eval.py --tune` run again.
 - **No streaming.** The answer arrives whole, because it has to be validated before any of it is shown.

@@ -8,6 +8,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /srv
 
+# OpenCV, used by the OCR model for scanned PDFs, needs these two system libraries.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libgl1 libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
 # CPU-only PyTorch first: the default Linux wheel bundles CUDA and is several GB larger.
 RUN pip install torch==2.14.1 --index-url https://download.pytorch.org/whl/cpu
 

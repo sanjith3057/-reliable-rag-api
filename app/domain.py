@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 class Page:
     number: int | None  # None for formats without pages (TXT, MD)
     text: str
+    from_ocr: bool = False  # the text was read off a scanned page, so it may contain recognition errors
 
 
 @dataclass(frozen=True)

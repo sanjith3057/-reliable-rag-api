@@ -26,6 +26,7 @@ from app.generation.validator import (
 from app.ingestion.chunker import chunk_pages
 from app.ingestion.hashing import doc_id_for
 from app.ingestion.loaders import SUPPORTED_EXTENSIONS, load_document
+from app.ingestion.ocr import ocr_pdf_pages
 from app.logging import get_logger, log_event, timed
 from app.retrieval.embedder import Embedder
 from app.retrieval.reranker import Reranker
@@ -80,7 +81,15 @@ class RagService:
     # ── Ingestion ────────────────────────────────────────────────────────────
     def ingest(self, filename: str, data: bytes) -> IngestResponse:
         doc_name = sanitize_filename(filename)
-        pages = load_document(doc_name, data, self.settings.max_file_bytes, self.settings.max_pdf_pages)
+        pages = load_document(
+            doc_name,
+            data,
+            self.settings.max_file_bytes,
+            self.settings.max_pdf_pages,
+            ocr=ocr_pdf_pages if self.settings.enable_ocr else None,
+            max_ocr_pages=self.settings.max_ocr_pages,
+        )
+        ocr_pages = sum(page.from_ocr for page in pages)
         doc_id = doc_id_for(data)
         chunks = chunk_pages(pages, doc_id, doc_name, self.settings.chunk_size, self.settings.chunk_overlap)
         embeddings = self.embedder.embed_documents([chunk.text for chunk in chunks])
@@ -95,8 +104,12 @@ class RagService:
                 status = "updated"
         self.store.add(chunks, embeddings)
 
-        log_event(logger, "ingested", doc_id=doc_id, doc_name=doc_name, chunks=len(chunks), status=status)
-        return IngestResponse(doc_id=doc_id, doc_name=doc_name, chunks=len(chunks), pages=len(pages), status=status)
+        log_event(
+            logger, "ingested", doc_id=doc_id, doc_name=doc_name, chunks=len(chunks), ocr_pages=ocr_pages, status=status
+        )
+        return IngestResponse(
+            doc_id=doc_id, doc_name=doc_name, chunks=len(chunks), pages=len(pages), ocr_pages=ocr_pages, status=status
+        )
 
     def ingest_directory(self, directory: str) -> list[IngestResponse]:
         folder = Path(directory)

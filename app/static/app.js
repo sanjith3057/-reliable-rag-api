@@ -175,7 +175,8 @@ async function uploadFiles(files) {
     form.append("file", file);
     try {
       const result = await api("/ingest", { method: "POST", body: form });
-      toast(`${result.doc_name}: ${result.chunks} chunks (${result.status})`, "INGESTED", "info");
+      const scanned = result.ocr_pages ? `, ${result.ocr_pages} scanned page${result.ocr_pages === 1 ? "" : "s"} read with OCR` : "";
+      toast(`${result.doc_name}: ${result.chunks} chunks (${result.status}${scanned})`, "INGESTED", "info");
     } catch (error) {
       toast(`${file.name}: ${error.message}`, error.code);
     }
