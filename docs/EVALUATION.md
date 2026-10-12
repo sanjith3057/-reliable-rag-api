@@ -19,7 +19,7 @@ How the system was measured, what the numbers are, and how much to trust them.
 | 20 questions on made-up company documents | 20 / 20 |
 | 18 questions on the 88-page GDPR regulation | 18 / 18 (one question is borderline) |
 | 10 generated questions on a document never used for tuning | 10 / 10 |
-| 156 automated tests | 156 passed |
+| 162 automated tests | 162 passed |
 
 Every evaluation number comes from a live run: real retrieval, the real LLM, no mocks. The sets are
 small and I wrote most of them, so this shows the pipeline works as designed. It is not a benchmark.
@@ -232,11 +232,11 @@ the CLI prints the result but does not overwrite the saved one.
 ## Automated tests
 
 ```bash
-pytest          # 156 tests, about 6 seconds, no API key or network needed
+pytest          # 162 tests, about 6 seconds, no API key or network needed
 ruff check .
 ```
 
-Latest run: **156 passed, 0 failed**. The full output is recorded in
+Latest run: **162 passed, 0 failed**. The full output is recorded in
 [`tests/RESULTS.md`](../tests/RESULTS.md). The same two commands run on every push
 (`.github/workflows/ci.yml`).
 
@@ -253,6 +253,7 @@ Latest run: **156 passed, 0 failed**. The full output is recorded in
 | Provider client | Request shape, rate-limit and bad-JSON handling, timeouts, against a fake HTTP transport |
 | Configuration | `.env.example` matches the code defaults and holds no secrets |
 | Grounding | Gate skips the LLM; hallucinated citation stripped; uncited answer refused; abstention respected; a figure not in the cited passage is flagged |
+| Excerpts | The quoted evidence contains the words of the answer; form values are quoted with their label, not a section heading; a second source shows what the first did not |
 | Prompt injection | Injected text stays inside its source block; an obedient model is still blocked |
 | Recursion | Depth cap, sub-question cap, no duplicate chunks, fallback when the split fails; second pass after an abstention |
 | Generated evaluation | Questions written from the library with verified gold labels; unverifiable drafts discarded; LLM judge; report survives a restart |

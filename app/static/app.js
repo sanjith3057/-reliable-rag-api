@@ -108,8 +108,6 @@ const SAMPLE_QUESTIONS = [
   "Which scanner has the longer battery life, the Orbit A1 or the Orbit B2?",
   "What is the password for the guest Wi-Fi network?",
 ];
-// Shown for the user's own documents, where we cannot know what is inside.
-const STARTER_QUESTIONS = ["Summarise this document", "What are the key points?", "What dates or deadlines are mentioned?"];
 
 async function refreshDocuments() {
   let documents = [];
@@ -153,7 +151,8 @@ async function refreshDocuments() {
 function renderSuggestions(documents) {
   const box = $("#suggestions");
   const samplesLoaded = documents.some((doc) => doc.doc_name === "hr_policy_2025.md");
-  const questions = samplesLoaded ? SAMPLE_QUESTIONS : documents.length ? STARTER_QUESTIONS : [];
+  // No chips for the user's own documents: we cannot know what is inside them.
+  const questions = samplesLoaded ? SAMPLE_QUESTIONS : [];
   box.replaceChildren();
   box.hidden = questions.length === 0;
   for (const question of questions) {
@@ -273,7 +272,7 @@ function renderSource(source) {
   const fill = el("span", "meter-fill");
   fill.style.width = `${Math.max(0, Math.min(1, source.score)) * 100}%`;
   track.append(fill);
-  meter.append(track, document.createTextNode(source.score.toFixed(2)));
+  meter.append(track, document.createTextNode(`similarity ${source.score.toFixed(2)}`));
   head.append(meter);
   node.append(head, el("blockquote", "", source.excerpt));
   return node;

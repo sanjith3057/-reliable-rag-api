@@ -6,7 +6,7 @@ from pathlib import Path
 from app.config import Settings
 from app.domain import RetrievalTrace, ScoredChunk
 from app.errors import AppError
-from app.generation.excerpts import best_excerpt
+from app.generation.excerpts import best_excerpts
 from app.generation.llm_base import LLM, complete_with_retries
 from app.generation.prompt import (
     DECOMPOSE_SYSTEM_PROMPT,
@@ -154,14 +154,17 @@ class RagService:
             return self._finish(question, _abstain(verdict.abstain_reason), chunks, trace, timings)
 
         with timed(timings, "excerpts_ms"):
+            texts = [labels[label].chunk.text for label in verdict.citations]
             sources = [
                 Source(
                     doc_name=labels[label].chunk.doc_name,
                     page=labels[label].chunk.page,
-                    excerpt=best_excerpt(labels[label].chunk.text, f"{question} {verdict.answer}", self.embedder),
+                    excerpt=excerpt,
                     score=round(labels[label].score, 4),
                 )
-                for label in verdict.citations
+                for label, excerpt in zip(
+                    verdict.citations, best_excerpts(texts, question, verdict.answer, self.embedder), strict=True
+                )
             ]
         cited = [labels[label] for label in verdict.citations]
         warnings = []

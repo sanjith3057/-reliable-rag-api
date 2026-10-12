@@ -45,8 +45,8 @@ Each document appears in the library with the number of pieces ("chunks") it was
 
 ## 3. Ask a question
 
-Type a question in the box and click **Ask**. A few starter questions appear under the box; click
-one to try it.
+Type a question in the box and click **Ask**. With the sample documents loaded, a few starter
+questions appear under the box; click one to try it.
 
 Good questions are specific:
 
@@ -69,7 +69,11 @@ An answer has three parts.
 | **Grounded · N sources** | How many passages back the answer |
 | **Evidence** | For each source: the document name, the page (for PDFs), the exact sentences used, and a score |
 
-The **score** (0 to 1) says how close the passage is in meaning to your question. Around 0.8 is a
+The **evidence** quotes the lines of the passage that contain the words of the answer, so you can
+check it at a glance. On a form, a short value is shown with its field label, for example
+"PREFERRED NAME Maggie".
+
+The **similarity** score (0 to 1) says how close the passage is in meaning to your question. Around 0.8 is a
 very close match. Around 0.55 is related but loosely worded. It is a search score, not a measure of
 how correct the answer is.
 

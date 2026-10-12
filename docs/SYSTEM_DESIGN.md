@@ -73,7 +73,7 @@ Three things sit behind interfaces so they can be swapped without touching the p
 | Second pass | If the model says the evidence is insufficient and the question has parts, split, retrieve and ask once more. |
 | Validate | Citations not in the retrieved set are dropped, as are citations to sources the model itself marked as distractors. No citation left means "not available" (`no_valid_citations`). |
 | Number check | Every figure in the answer must appear in a cited passage or the question; a miss adds a warning. |
-| Excerpts | The cited chunk is split into sentences and the ones closest to the question and answer are returned. No extra LLM call. |
+| Excerpts | From each cited chunk, the lines that contain the words of the answer are quoted. If none do, the sentences closest in meaning are used. No extra LLM call. |
 
 If the LLM fails, it is retried twice with backoff, then the next model in the failover chain is
 used. If every model is rate limited for longer than 30 seconds the request returns
@@ -301,8 +301,14 @@ hallucination, and it is cheap to catch: every number in an answer must appear i
 or in the question. A miss is reported as a warning, not a refusal, because a correct answer can
 contain a figure the model worked out, such as a difference between two values.
 
-**Excerpts without another LLM call.** The cited chunk is split into sentences, and the sentences
-closest to the question and answer are returned, ranked with the same embedder.
+**Excerpts that contain the answer, without another LLM call.** The cited chunk is split into lines
+and sentences, and the ones that together contain the most words of the answer are quoted. When a
+second chunk is cited, it shows the part of the answer the first did not. If no line shares a word
+with the answer (a paraphrase), the sentences closest in meaning are used instead. The first version
+ranked only by similarity to the question and skipped lines without closing punctuation. On a
+filled-in PDF form that showed a section heading ("EMERGENCY CONTACT 3.") under a correct answer,
+because form values such as a name or a phone number are bare lines. The answer was grounded but
+the evidence on screen did not show it.
 
 **Lazy imports.** ChromaDB, pypdf, the BM25 library, the HTTP client and sentence-transformers are
 imported inside the functions that first need them, not at module load. Importing the app dropped
@@ -340,6 +346,11 @@ What this does not do, grouped by where it would bite.
 **Retrieval and answers**
 
 - **Fixed-size chunks.** A table or long list can be split across two chunks.
+- **Forms lose their layout.** Text extracted from a PDF form comes out as bare lines, and a value
+  can land far from its label, or in a different chunk. Answers on a test form were still correct,
+  because two chunks were retrieved, but this depends on the model matching values to labels.
+- **Excerpts are chosen by shared words.** A paraphrased answer falls back to the closest sentence,
+  which is weaker evidence than a line containing the answer itself.
 - **Multi-part questions across distant sections can still fail**, as r12 did in one of two runs.
 - **Whole-document questions get partial answers.** "Summarise this document" is answered from the
   5 best-matching chunks, not the whole file.
