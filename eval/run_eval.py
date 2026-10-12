@@ -200,9 +200,8 @@ def main() -> None:
         failed = sum(result.error is not None for result in report.results)
         if failed:
             # A run cut short by a provider quota says nothing about answer quality: keep the last good record.
-            print(
-                f"NOT saved: {failed} question(s) hit a provider error (usually a rate limit). {target.name} is unchanged."
-            )
+            print(f"NOT saved: {failed} question(s) hit a provider error, usually a rate limit.")
+            print(f"{target.name} is unchanged.")
         else:
             target.write_text(markdown, encoding="utf-8")
             print(f"wrote {target}")
