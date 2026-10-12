@@ -234,8 +234,9 @@ capital of Australia?" proves the model is not answering from memory.
 
 **A PrismRAG-inspired prompt, not PrismRAG.** The prompt asks for a plan, then a per-source evidence
 check that flags distractors, then the answer. That shape is borrowed from the PrismRAG paper. The
-paper's actual method is fine-tuning on distractor-heavy data, which this project does not do (see
-`finetune/README.md` for the design).
+paper's actual method is fine-tuning on distractor-heavy data, which this project does not do.
+Grounding here is enforced in code after the model answers (the gate, the citation validator, the
+number check), so it holds for any model behind the API and can be tested without one.
 
 **Position-aware context.** The strongest passages go at the start and end of the context and the
 weakest in the middle, because models attend least to the middle of a long prompt.
@@ -544,4 +545,3 @@ What this does not do, grouped by where it would bite.
 - A map-reduce path for whole-document questions such as summaries.
 - Background jobs for evaluation and large uploads, with progress reporting.
 - Per-user libraries and accounts in place of shared keys.
-- QLoRA fine-tune of a small local model on distractor-heavy data (`finetune/README.md`).

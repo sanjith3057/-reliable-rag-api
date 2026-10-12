@@ -9,7 +9,6 @@ __pycache__
 .pytest_cache
 .ruff_cache
 tests
-finetune
 scripts
 .agent
 .ralphy
