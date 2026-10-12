@@ -197,8 +197,15 @@ def main() -> None:
     print(markdown)
     if args.dataset != "dev":
         target = EVAL_DIR / ("results.md" if args.dataset == "test" else "results_real.md")
-        target.write_text(markdown, encoding="utf-8")
-        print(f"wrote {target}")
+        failed = sum(result.error is not None for result in report.results)
+        if failed:
+            # A run cut short by a provider quota says nothing about answer quality: keep the last good record.
+            print(
+                f"NOT saved: {failed} question(s) hit a provider error (usually a rate limit). {target.name} is unchanged."
+            )
+        else:
+            target.write_text(markdown, encoding="utf-8")
+            print(f"wrote {target}")
 
 
 if __name__ == "__main__":
