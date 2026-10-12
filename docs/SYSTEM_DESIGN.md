@@ -437,3 +437,8 @@ What this does not do, grouped by where it would bite.
 - A map-reduce path for whole-document questions such as summaries.
 - Background jobs for evaluation and large uploads, with progress reporting.
 - Per-user libraries and accounts in place of shared keys.
+- Follow-up questions. Each question is answered on its own today. The next step is to rewrite a
+  follow-up ("and for contractors?") into a full question using the previous turn, then search as
+  usual, so the answer is still cited. A memory library such as mem0 was considered and left out:
+  remembered chat would be a second, uncited source next to the documents.
+- Better OCR for scans: straighten skewed pages, keep table layout, and handle handwriting.

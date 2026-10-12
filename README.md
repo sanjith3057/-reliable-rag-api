@@ -229,6 +229,21 @@ Dockerfile, docker-compose.yml
 The full list, with what each fix would take, is in
 [System design: limitations](docs/SYSTEM_DESIGN.md#limitations).
 
+## Future upgrades
+
+Not built yet, in the order I would do them:
+
+- **Follow-up questions.** Each question is answered on its own today, so "and for contractors?"
+  does not know what came before. The plan is to rewrite a follow-up into a full question from the
+  previous turn and then search as usual, so every answer is still backed by a document. A chat
+  memory library (mem0) was considered and left out for now: remembered chat would be a second
+  source of facts that has no citation.
+- **Summaries that read every page**, by summarising a long document section by section.
+- **Smarter splitting** that keeps a table whole and carries the section heading into each piece.
+- **Better OCR** for skewed photos, tables and handwriting.
+- **Separate libraries per user**, with accounts in place of shared keys.
+- **A larger question set written by someone else**, scored by an independent judge model.
+
 ## License
 
 See [LICENSE](LICENSE).
