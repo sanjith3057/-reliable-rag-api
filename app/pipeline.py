@@ -20,6 +20,7 @@ from app.generation.validator import (
     parse_sub_questions,
     unsupported_numbers,
     validate_answer,
+    wording_is_in_sources,
 )
 from app.ingestion.chunker import chunk_pages
 from app.ingestion.hashing import doc_id_for
@@ -168,7 +169,13 @@ class RagService:
             ]
         cited = [labels[label] for label in verdict.citations]
         warnings = []
-        loose = unsupported_numbers(verdict.answer, question, [item.chunk.text for item in cited])
+        cited_texts = [item.chunk.text for item in cited]
+        if not wording_is_in_sources(verdict.answer, cited_texts):
+            warnings.append(
+                "The cited passages do not contain the wording of this answer. It may be inferred, not stated: "
+                "check it against the evidence."
+            )
+        loose = unsupported_numbers(verdict.answer, question, cited_texts)
         if loose:
             warnings.append(
                 f"These figures are not in the cited passages: {', '.join(loose)}. Check them against the evidence."

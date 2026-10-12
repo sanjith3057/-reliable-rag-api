@@ -67,12 +67,13 @@ Three things sit behind interfaces so they can be swapped without touching the p
 | --- | --- |
 | Search | The question is embedded and the 20 nearest chunks are fetched (`RAW_K`). |
 | Rerank | A cross-encoder re-scores the 20 and the best 5 are kept (`TOP_K`). |
-| Gate | If the best cosine similarity is below 0.50, return "not available" with `abstain_reason: below_threshold`. No LLM call is made. |
-| Split, if weak | If the best score is between 0.50 and 0.60, the question is split into up to 3 sub-questions and each is retrieved separately, to a depth of 2. |
+| Gate | If the best cosine similarity is below 0.40, return "not available" with `abstain_reason: below_threshold`. No LLM call is made. |
+| Split, if weak | If the best score is between 0.40 and 0.60, the question is split into up to 3 sub-questions and each is retrieved separately, to a depth of 2. |
 | Ask the LLM | Passages are placed in `<source>` blocks, strongest at the start and end. The model must return JSON: a plan, a per-source evidence check, the answer, and the source ids it used. |
 | Second pass | If the model says the evidence is insufficient and the question has parts, split, retrieve and ask once more. |
 | Validate | Citations not in the retrieved set are dropped, as are citations to sources the model itself marked as distractors. No citation left means "not available" (`no_valid_citations`). |
 | Number check | Every figure in the answer must appear in a cited passage or the question; a miss adds a warning. |
+| Wording check | If not one content word of the answer appears in the cited passages, a warning says the answer may be inferred, not stated. |
 | Excerpts | From each cited chunk, the lines that contain the words of the answer are quoted. If none do, the sentences closest in meaning are used. No extra LLM call. |
 
 If the LLM fails, it is retried twice with backoff, then the next model in the failover chain is
@@ -206,7 +207,7 @@ The most useful ones:
 | `LLM_TIMEOUT_S` / `LLM_MAX_RETRIES` | 30 / 2 | Per-call timeout and retries |
 | `EMBEDDING_MODEL` | `BAAI/bge-small-en-v1.5` | Local embedding model |
 | `TOP_K` | 5 | Passages given to the LLM |
-| `SIMILARITY_THRESHOLD` | 0.50 | The gate: below this, no LLM call |
+| `SIMILARITY_THRESHOLD` | 0.40 | The gate: below this, no LLM call |
 | `ENABLE_RERANKER` | true | Cross-encoder reranking of the top 20 |
 | `ENABLE_HYBRID` | false | Add BM25 keyword search to dense search |
 | `CHUNK_SIZE` / `CHUNK_OVERLAP` | 800 / 120 | Characters per chunk and overlap |
@@ -242,13 +243,26 @@ smaller is better. Comparing that against a "minimum similarity" threshold inver
 system either refuses everything or answers everything. `vector_store.distance_to_similarity` does
 the conversion once, and `tests/test_similarity.py` checks it against vectors with a known cosine.
 
-**A loose retrieval gate before the LLM.** If the best passage scores below 0.50, the API returns
-"not available" without calling the LLM. I first set this to 0.60, which looked safe on the sample
-documents (their lowest answerable question scores 0.66). It was not: on a real document, valid
-questions scored between 0.55 and 0.66 and were being refused. Cosine scores from this embedding
-model sit in a narrow band, so a tight threshold tuned on one corpus does not transfer to another.
-At 0.50 the gate only stops clearly off-topic questions ("Who won the World Cup?" scores 0.47).
-Near-topic traps pass it by design and are handled by the model's own abstention and the validator.
+**A loose retrieval gate before the LLM.** If the best passage scores below 0.40, the API returns
+"not available" without calling the LLM. This value was lowered twice, each time because a new
+kind of document proved the last one wrong:
+
+| Gate | Why it looked right | What broke it |
+| --- | --- | --- |
+| 0.60 | The lowest answerable question on the sample documents scores 0.66 | On a real markdown document, valid questions scored 0.55 to 0.66 and were refused |
+| 0.50 | Off-topic questions on the evaluation corpus score 0.47 to 0.49 | On a one-page medical form, "Why did she come in today?" scored 0.447 and "Does she smoke?" 0.458, and both were refused. The form answers both. |
+| 0.40 | Current value | Not yet broken. Nothing guarantees it will not be. |
+
+The form showed the real problem. On that document an off-topic question ("What is the refund
+policy for online orders?", 0.483) scores *higher* than two questions the form answers. No
+threshold can separate them, because the score measures how alike the wording is, and a short
+conversational question shares little wording with a terse form.
+
+So the gate is now only a cost saver for questions that are nowhere near the documents (on the
+form, "What is the capital of Australia?" scores 0.37). The decision to refuse belongs to the
+model's own abstention and the validator. I checked that directly: every evaluation question that
+the old gate stopped and the new one lets through (one in the test set, one in the real set, two
+in the dev set) is still refused, now by the model. The cost is one LLM call for each such question.
 
 **A reranker after dense search.** The 20 nearest chunks are re-scored by a small cross-encoder and
 the best 5 are kept. This was off in my first version because it made no difference on the sample
@@ -283,7 +297,7 @@ chat-completions format, so `OpenAICompatibleLLM` covers them with a different b
 `LLM_PROVIDER` selects one. `FakeLLM` implements the same interface for tests.
 
 **Multi-part questions get a second pass.** Two triggers split a question into sub-questions and
-retrieve each part separately. Before answering: when the best score is weak (between 0.50 and
+retrieve each part separately. Before answering: when the best score is weak (between 0.40 and
 0.60), to a maximum depth of 2. After answering: when the model reports that the evidence is
 insufficient, once. A question that asks for a single fact yields no sub-questions, so a genuine
 "not available" costs one small extra call and stays a refusal. If the split fails, the pipeline
@@ -347,8 +361,18 @@ What this does not do, grouped by where it would bite.
 
 - **Fixed-size chunks.** A table or long list can be split across two chunks.
 - **Forms lose their layout.** Text extracted from a PDF form comes out as bare lines, and a value
-  can land far from its label, or in a different chunk. Answers on a test form were still correct,
-  because two chunks were retrieved, but this depends on the model matching values to labels.
+  can land far from its label, or in a different chunk. The model has to match values to labels by
+  itself, and a weaker model gets it wrong: on a test form, the last model in the failover chain
+  returned the patient's phone number as the emergency contact's. The answer cited a real passage,
+  so nothing in the code caught it.
+- **The model can still reason from its own knowledge on top of a cited fact.** Asked "Is
+  amoxicillin safe for her?" about a form that records a penicillin allergy, it answered "not
+  safe". The allergy is in the form; that amoxicillin is a penicillin is not. A stricter prompt
+  rule did not change this in a quick test, so it was not kept. The wording check only
+  catches an answer that shares no word at all with its evidence.
+- **The gate cannot tell "off-topic" from "worded differently".** See the decision on the gate.
+  Below 0.40 a question is refused without asking the model, and a valid but oddly worded question
+  could still fall there.
 - **Excerpts are chosen by shared words.** A paraphrased answer falls back to the closest sentence,
   which is weaker evidence than a line containing the answer itself.
 - **Multi-part questions across distant sections can still fail**, as r12 did in one of two runs.

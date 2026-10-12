@@ -79,9 +79,16 @@ how correct the answer is.
 
 **Always read the evidence.** The answer is only as trustworthy as the sentence quoted under it.
 
-Sometimes an answer carries a **warning**. Today there is one kind: the answer contains a number
-that does not appear in the cited passage. That can be an honest calculation (the document says
-"from 65% to 100%" and the answer says "35 points"), or it can be a mistake. Check the evidence.
+Sometimes an answer carries a **warning**. There are two kinds:
+
+- **A number that is not in the cited passage.** That can be an honest calculation (the document
+  says "from 65% to 100%" and the answer says "35 points"), or it can be a mistake.
+- **Wording that is not in the cited passage at all.** The answer was worked out or inferred, not
+  read off the page.
+
+Either way, check the evidence before relying on the answer. Be careful with questions that ask
+for a judgement ("Is this safe?", "Is this allowed?"). The assistant may add a conclusion that
+your document does not state.
 
 ## 5. When it says "not available"
 

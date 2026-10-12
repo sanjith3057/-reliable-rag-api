@@ -7,6 +7,7 @@ from app.generation.validator import (
     parse_json_object,
     unsupported_numbers,
     validate_answer,
+    wording_is_in_sources,
 )
 from tests.conftest import make_client, upload
 
@@ -136,3 +137,22 @@ def test_number_check_ignores_formatting_and_the_question():
     assert unsupported_numbers("It is 8 hours longer.", "?", ["14 hours", "22 hours"]) == ["8"]
     assert unsupported_numbers("No figures here.", "?", ["text"]) == []
     assert unsupported_numbers("4", "?", ["it picks one of four actions"]) == [], "a number word backs its digit"
+
+
+# ── Wording check ────────────────────────────────────────────────────────────
+def test_an_answer_whose_wording_is_not_in_the_cited_passage_is_flagged():
+    body, _ = _ask(_reply(answer="Amoxicillin is unsafe."))
+
+    assert body["answerable"] is True, "a warning, not a refusal"
+    assert any("do not contain the wording" in warning for warning in body["warnings"])
+
+
+def test_wording_check_units():
+    passage = ["KNOWN ALLERGIES\nPenicillin, shellfish"]
+    assert wording_is_in_sources("She is allergic to penicillin.", passage)
+    assert not wording_is_in_sources("Amoxicillin is not safe for her.", passage)
+    assert not wording_is_in_sources("Canberra", passage)
+    assert wording_is_in_sources("Yes.", passage), "a bare yes or no has no wording to check"
+    assert wording_is_in_sources("Covered.", ["nothing here", "it is covered by the policy"]), (
+        "any cited passage counts"
+    )

@@ -41,9 +41,10 @@ class Settings(BaseSettings):
 
     # Retrieval
     top_k: int = 5
-    # The abstention gate. Deliberately loose: it only stops clearly off-topic questions, because valid
-    # questions on real documents score as low as 0.55. Near-topic traps are left to the model and validator.
-    similarity_threshold: float = 0.50
+    # The abstention gate. Deliberately loose: it only stops clearly off-topic questions, because a valid
+    # question scores as low as 0.45 on a terse document such as a form. Everything above it is left to
+    # the model's own abstention and the validator.
+    similarity_threshold: float = 0.40
     sufficiency_threshold: float = 0.60  # at or above this, first-pass evidence is enough (no decomposition)
     max_depth: int = 2
     max_sub_questions: int = 3

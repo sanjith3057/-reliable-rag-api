@@ -22,7 +22,7 @@ def split_sentences(text: str) -> list[str]:
     return [part.strip(" \t-*#|") for part in parts if part.strip(" \t-*#|")]
 
 
-def _terms(text: str) -> set[str]:
+def content_terms(text: str) -> set[str]:
     """Words and numbers worth matching on: numbers of any length, words of three letters or more."""
     tokens = re.findall(r"[a-z0-9]+", text.lower())
     return {t for t in tokens if t.isdigit() or (len(t) >= 3 and t not in _STOPWORDS)}
@@ -32,7 +32,12 @@ def _covering(sentences: list[str], wanted: set[str], max_sentences: int) -> tup
     """Indexes of the sentences that together contain the most of the wanted words, and the words found."""
     wanted = set(wanted)
     found: set[str] = set()
-    sentence_terms = [_terms(sentence) for sentence in sentences]
+    # A line in capitals is a heading or a field label. It can share a word with the answer without
+    # being evidence for it, so it is only quoted when the chunk has nothing else.
+    only_labels = all(sentence.isupper() for sentence in sentences)
+    sentence_terms = [
+        content_terms(sentence) if only_labels or not sentence.isupper() else set() for sentence in sentences
+    ]
     chosen: list[int] = []
     while wanted and len(chosen) < max_sentences:
         # The sentence that adds the most still-missing words; the earliest one wins a tie.
@@ -55,7 +60,7 @@ def _with_label(sentences: list[str], index: int, chosen: list[int]) -> str:
 
 def best_excerpts(texts: list[str], question: str, answer: str, embedder: Embedder) -> list[str]:
     """One excerpt per cited chunk. Each chunk shows the part of the answer the earlier ones did not."""
-    remaining = _terms(answer)
+    remaining = content_terms(answer)
     excerpts = []
     for text in texts:
         excerpt, found = _excerpt(text, question, answer, embedder, remaining)
@@ -65,7 +70,7 @@ def best_excerpts(texts: list[str], question: str, answer: str, embedder: Embedd
 
 
 def best_excerpt(text: str, question: str, answer: str, embedder: Embedder) -> str:
-    return _excerpt(text, question, answer, embedder, _terms(answer))[0]
+    return _excerpt(text, question, answer, embedder, content_terms(answer))[0]
 
 
 def _excerpt(
@@ -79,7 +84,7 @@ def _excerpt(
     # Form fields and table cells have no closing punctuation, so every line is a candidate here.
     chosen, found = _covering(sentences, wanted, max_sentences)
     if not chosen:
-        chosen, _ = _covering(sentences, _terms(answer), max_sentences)
+        chosen, _ = _covering(sentences, content_terms(answer), max_sentences)
     if chosen:
         parts = [_with_label(sentences, i, chosen) for i in sorted(chosen)]
         return " … ".join(parts)[:max_chars].rstrip(), found

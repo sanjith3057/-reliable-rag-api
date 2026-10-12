@@ -116,7 +116,7 @@ These sets are small, and one question on the GDPR set passed in one run and fai
 The full numbers, the runs that went badly and what was changed are in
 [Evaluation and tests](docs/EVALUATION.md).
 
-There are also 162 automated tests. They run in about 6 seconds with no API key and no internet.
+There are also 164 automated tests. They run in about 6 seconds with no API key and no internet.
 
 ```bash
 pytest
@@ -165,7 +165,7 @@ docs/                user guide, system design, evaluation, diagrams
 eval/                question sets and recorded results
 sample_docs/         8 made-up company documents to try it with
 real_docs/           one real 88-page PDF (the GDPR regulation)
-tests/               162 automated tests and their recorded results
+tests/               164 automated tests and their recorded results
 Dockerfile, docker-compose.yml
 ```
 
@@ -182,7 +182,7 @@ Dockerfile, docker-compose.yml
 | At least 10 evaluation questions of three kinds | 59 questions in `eval/`: answerable, unanswerable, multi-evidence, distractor |
 | Clean, modular Python | One package per stage; models sit behind interfaces |
 | Environment variables for keys and config | `app/config.py`, `.env.example` |
-| Tests for retrieval, API behaviour, failure cases | `tests/` (162 tests), results in [`tests/RESULTS.md`](tests/RESULTS.md) |
+| Tests for retrieval, API behaviour, failure cases | `tests/` (164 tests), results in [`tests/RESULTS.md`](tests/RESULTS.md) |
 | Docker support and setup documentation | `Dockerfile`, `docker-compose.yml`, "Run it" above |
 | Existing LLM API, no training from scratch | Groq, OpenAI or Gemini; the embedding model is pretrained |
 | Sample documents and evaluation questions | `sample_docs/`, `real_docs/`, `eval/questions_*.json` |
@@ -196,6 +196,11 @@ Dockerfile, docker-compose.yml
 - **"Summarise this document" gets a partial answer.** It answers from the 5 best-matching pieces,
   not the whole file.
 - **A table can be cut in half** when a document is split into pieces.
+- **Forms are harder than prose.** A PDF form loses its layout when read, so a value can end up far
+  from its label. On a test form, the weakest fallback model gave the wrong phone number.
+- **It can add a conclusion your document does not state.** Asked "Is amoxicillin safe for her?"
+  about a form that records a penicillin allergy, it answered "not safe". The allergy is in the
+  form; the link to amoxicillin is the AI model's own knowledge.
 - **The free Groq plan runs out.** About 200,000 tokens a day per model. Three models are tried in
   turn, then you get a clear "try again later" message.
 - **Everyone with a key sees the same library.** There are no separate user accounts.

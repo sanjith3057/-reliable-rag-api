@@ -4,6 +4,7 @@ import json
 import re
 from dataclasses import dataclass, field
 
+from app.generation.excerpts import content_terms
 from app.generation.llm_base import LLMBadResponse
 
 NOT_AVAILABLE = "The information is not available in the provided documents."
@@ -114,3 +115,15 @@ def unsupported_numbers(answer: str, question: str, cited_texts: list[str]) -> l
     for text in cited_texts:
         known |= _numbers(spell_numbers_as_digits(text))
     return sorted(_numbers(answer) - known)
+
+
+def wording_is_in_sources(answer: str, cited_texts: list[str]) -> bool:
+    """False when not one content word of the answer appears in the passages it cites.
+
+    Such an answer was inferred, calculated or taken from the model's own knowledge. It may still be
+    right, so this is a warning too, but the reader should know the evidence does not state it.
+    """
+    words = content_terms(answer) - {"yes"}
+    if not words:
+        return True
+    return any(words & content_terms(text) for text in cited_texts)

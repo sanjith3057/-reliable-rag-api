@@ -19,7 +19,7 @@ How the system was measured, what the numbers are, and how much to trust them.
 | 20 questions on made-up company documents | 20 / 20 |
 | 18 questions on the 88-page GDPR regulation | 18 / 18 (one question is borderline) |
 | 10 generated questions on a document never used for tuning | 10 / 10 |
-| 162 automated tests | 162 passed |
+| 164 automated tests | 164 passed |
 
 Every evaluation number comes from a live run: real retrieval, the real LLM, no mocks. The sets are
 small and I wrote most of them, so this shows the pipeline works as designed. It is not a benchmark.
@@ -62,7 +62,7 @@ questions.
 ## Results
 
 Configuration: Groq `openai/gpt-oss-20b` at low reasoning effort, `bge-small-en-v1.5`, reranker on,
-top-k 5, gate 0.50. Run on 12 Oct 2026.
+top-k 5, gate 0.50. Run on 12 Oct 2026. The gate default has since been lowered to 0.40; see the note under the table.
 
 | Metric | Test set (fictional) | Real set (GDPR) | Definition |
 | --- | --- | --- | --- |
@@ -76,6 +76,13 @@ top-k 5, gate 0.50. Run on 12 Oct 2026.
 
 Per-question tables: [`eval/results.md`](../eval/results.md) and
 [`eval/results_real.md`](../eval/results_real.md).
+
+**These numbers were measured with the gate at 0.50; the default is now 0.40.** The two full sets
+have not been re-run since, because the free quota was spent. What was re-checked: lowering the
+gate changes the path of a question only if its best score is between 0.40 and 0.50, where it used
+to be refused by the gate and is now passed to the LLM. That is one question in the test set
+(t15), one in the real set (r18) and two in the dev set. All four were asked again for real and all
+four are still refused, now by the model. Every other question takes the same path as before.
 
 **One question is borderline.** r12 asks two things at once: how quickly a breach must be reported
 and what the highest fine is. Those facts are on pages 52 and 83. In the run before this one it
@@ -149,7 +156,29 @@ I am including the history because the first version looked better than it was.
    fixed that.
 7. **Final run: 20 / 20 and 18 / 18.**
 
-Steps 2 to 6 used information from outside the dev set, including the earlier real-set runs, so the
+8. **A one-page form broke two more things.** A fictional medical intake form (13 questions asked
+   by hand, not a scored set) showed that the evidence under correct answers was a section heading,
+   and that the gate refused two questions the form plainly answers. The excerpt picker was
+   rewritten to quote the lines that contain the answer, and the gate was lowered to 0.40. The
+   reasoning is in [System design](SYSTEM_DESIGN.md#design-decisions-and-trade-offs).
+
+After those changes, on the form:
+
+| Question | Result |
+| --- | --- |
+| Why did she come in today? | Correct. Was refused by the gate before. |
+| Does she smoke? | Correct ("No, she has never smoked"). Was refused by the gate before. |
+| Preferred name; medications for chronic conditions | Correct, with the right lines quoted |
+| Blood type; is her blood pressure under control? | Refused, correctly: the form does not say |
+| Router password; refund policy; boiling point of water; capital of Australia | Refused, correctly |
+| How old will she be in 2030? | "51", with two warnings that the figure is not in the cited text. A correct calculation, not a stated fact. |
+| Is amoxicillin safe for her? | **Wrong kind of answer.** "Not safe, because she is allergic to penicillin." The form states the allergy; that amoxicillin is a penicillin is the model's own knowledge. |
+| Emergency contact's number | **Wrong on one of three models.** `gpt-oss-20b` gave the right number. `qwen3.8-27b`, the last model in the failover chain, gave the patient's own number, which sits next to the word "Spouse" in the extracted text. |
+
+The last two rows are failures that remain. Both are listed under
+[limitations](SYSTEM_DESIGN.md#limitations).
+
+Steps 2 to 8 used information from outside the dev set, including the earlier real-set runs, so the
 real-set score is not a clean held-out number. No change was made to target r12 specifically.
 
 ## Retrieval and fusion evaluation (no LLM)
@@ -232,11 +261,11 @@ the CLI prints the result but does not overwrite the saved one.
 ## Automated tests
 
 ```bash
-pytest          # 162 tests, about 6 seconds, no API key or network needed
+pytest          # 164 tests, about 6 seconds, no API key or network needed
 ruff check .
 ```
 
-Latest run: **162 passed, 0 failed**. The full output is recorded in
+Latest run: **164 passed, 0 failed**. The full output is recorded in
 [`tests/RESULTS.md`](../tests/RESULTS.md). The same two commands run on every push
 (`.github/workflows/ci.yml`).
 
