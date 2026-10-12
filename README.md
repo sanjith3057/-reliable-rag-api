@@ -26,8 +26,15 @@ instead of making one up.
 
 ## Run it
 
-You need one free API key from [Groq](https://console.groq.com/keys). To try it with no key at all,
-set `LLM_PROVIDER=fake` in the `.env` file: answers are then just the best-matching sentence.
+You need one API key. A free one from [Groq](https://console.groq.com/keys) is the default.
+
+- **Have an OpenAI or Gemini key instead?** In `.env` set `LLM_PROVIDER=openai` and
+  `OPENAI_API_KEY=...`, or `LLM_PROVIDER=gemini` and `GEMINI_API_KEY=...`.
+- **No key at all?** Set `LLM_PROVIDER=fake`. Answers are then just the best-matching sentence,
+  which is enough to see uploading, search and citations work.
+
+The free Groq plan is small (about 200,000 tokens a day per model). If you get "try again
+later", the quota is spent: wait, or use a different key or provider.
 
 ### Option 1: Docker (easiest)
 
@@ -35,6 +42,9 @@ set `LLM_PROVIDER=fake` in the `.env` file: answers are then just the best-match
 cp .env.example .env        # then open .env and paste your key after GROQ_API_KEY=
 docker compose up --build
 ```
+
+The first build takes several minutes: it installs PyTorch (CPU only) and downloads the two models
+into the image, which ends up at about 0.8 GB. After that the container starts offline in seconds.
 
 ### Option 2: Python on your machine
 
@@ -108,7 +118,8 @@ There is no SQL database. Everything searchable lives in one ChromaDB collection
 
 ## Does it work?
 
-Measured with the real AI model, not a simulation.
+Measured with the real AI model, not a simulation. The runs used the last of the three fallback
+models, because my own testing had used up the daily quota of the first two.
 
 | Question set | What it tests | Result |
 | --- | --- | --- |

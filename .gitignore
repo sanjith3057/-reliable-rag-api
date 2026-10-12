@@ -20,12 +20,3 @@ htmlcov/
 .idea/
 .DS_Store
 Thumbs.db
-
-# private planning notes, not part of the submission
-rag-assessment-final-plan.md
-
-# local agent tooling
-.agent/
-.ralphy/
-.claude/
-.playwright-mcp/
