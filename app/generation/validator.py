@@ -99,8 +99,14 @@ def spell_numbers_as_digits(text: str) -> str:
 
 
 def _numbers(text: str) -> set[str]:
-    """Every figure in the text, with thousands separators removed: "20 000 000" and "1,200" compare equal."""
-    return {re.sub(r"[ \u00a0\u202f,]", "", match).rstrip(".") for match in _NUMBER.findall(text)}
+    """Every figure in the text, in one spelling: "20 000 000" equals "20,000,000" and "8.00" equals "8"."""
+    figures = set()
+    for match in _NUMBER.findall(text):
+        figure = re.sub(r"[ \u00a0\u202f,]", "", match).rstrip(".")
+        if "." in figure:
+            figure = figure.rstrip("0").rstrip(".")
+        figures.add(figure)
+    return figures
 
 
 def unsupported_numbers(answer: str, question: str, cited_texts: list[str]) -> list[str]:

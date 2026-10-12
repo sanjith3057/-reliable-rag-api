@@ -16,10 +16,10 @@ How the system was measured, what the numbers are, and how much to trust them.
 
 | Question set | Result |
 | --- | --- |
-| 20 questions on made-up company documents | 20 / 20 |
-| 18 questions on the 88-page GDPR regulation | 18 / 18 (one question is borderline) |
+| 20 questions on made-up company documents | 20 / 20 (current configuration) |
+| 18 questions on the 88-page GDPR regulation | 18 / 18 (one question is borderline; measured before the last two changes) |
 | 10 generated questions on a document never used for tuning | 10 / 10 |
-| 164 automated tests | 164 passed |
+| 169 automated tests | 169 passed |
 
 Every evaluation number comes from a live run: real retrieval, the real LLM, no mocks. The sets are
 small and I wrote most of them, so this shows the pipeline works as designed. It is not a benchmark.
@@ -61,8 +61,14 @@ questions.
 
 ## Results
 
-Configuration: Groq `openai/gpt-oss-20b` at low reasoning effort, `bge-small-en-v1.5`, reranker on,
-top-k 5, gate 0.50. Run on 12 Oct 2026. The gate default has since been lowered to 0.40; see the note under the table.
+Both runs: `bge-small-en-v1.5`, reranker on, top-k 5, 12 Oct 2026. The two columns were measured
+with different settings, because the free quota ran out before the real set could be run again:
+
+| | Test set | Real set |
+| --- | --- | --- |
+| Model | `qwen/qwen3.8-27b` (third in the failover chain) | `openai/gpt-oss-20b` (second) |
+| Gate | 0.40 (current) | 0.50 (previous) |
+| Neighbouring chunks | On (current) | Not yet built |
 
 | Metric | Test set (fictional) | Real set (GDPR) | Definition |
 | --- | --- | --- | --- |
@@ -72,17 +78,19 @@ top-k 5, gate 0.50. Run on 12 Oct 2026. The gate default has since been lowered 
 | Citation correctness | 100% | 100% | At least one citation, and every citation is an expected document |
 | Answer keyword accuracy | 100% | 100% | The answer contains the expected facts |
 | Distractor resilience | 100% | n/a | Cited the right document and not the near-miss |
-| Average latency | 5.6 s | 8.7 s | Dominated by rate-limit waits, see below |
+| Average latency | 13.2 s | 8.7 s | Dominated by rate-limit waits, see below |
 
 Per-question tables: [`eval/results.md`](../eval/results.md) and
 [`eval/results_real.md`](../eval/results_real.md).
 
-**These numbers were measured with the gate at 0.50; the default is now 0.40.** The two full sets
-have not been re-run since, because the free quota was spent. What was re-checked: lowering the
+**The test set column is the current configuration.** It was run after the gate was lowered and
+neighbouring chunks were added, and it was answered by the weakest model in the chain.
+
+**The real set column is not.** It predates both changes. What was re-checked for it: lowering the
 gate changes the path of a question only if its best score is between 0.40 and 0.50, where it used
-to be refused by the gate and is now passed to the LLM. That is one question in the test set
-(t15), one in the real set (r18) and two in the dev set. All four were asked again for real and all
-four are still refused, now by the model. Every other question takes the same path as before.
+to be refused by the gate and is now passed to the LLM. That is one real-set question (r18), and it
+was asked again and is still refused, now by the model. The effect of neighbouring chunks on the
+real set has not been measured. Run `python eval/run_eval.py --dataset real` to measure it.
 
 **One question is borderline.** r12 asks two things at once: how quickly a breach must be reported
 and what the highest fine is. Those facts are on pages 52 and 83. In the run before this one it
@@ -178,7 +186,14 @@ After those changes, on the form:
 The last two rows are failures that remain. Both are listed under
 [limitations](SYSTEM_DESIGN.md#limitations).
 
-Steps 2 to 8 used information from outside the dev set, including the earlier real-set runs, so the
+9. **A 58-page project report showed an incomplete list.** "What is the tech stack used here" was
+   answered from the first and last part of a section that spans four chunks. Chunks next to the
+   retrieved ones are now added to the context, and sentences that the PDF wrapped over several
+   lines are joined before they are quoted. After the change the answer also names OpenCV and
+   TensorFlow; it still omits MediaPipe and MTCNN. Five other questions on that report (accuracy,
+   guide, hardware, future scope, and one it cannot answer) came out right.
+
+Steps 2 to 9 used information from outside the dev set, including the earlier real-set runs, so the
 real-set score is not a clean held-out number. No change was made to target r12 specifically.
 
 ## Retrieval and fusion evaluation (no LLM)
@@ -238,9 +253,9 @@ What this says:
   most questions waited for the limit to reset. Questions that did not wait took 1.1 to 3.0
   seconds, and questions stopped by the gate took about 0.5 seconds.
 - **Model choice was forced.** The default model is `gpt-oss-120b`, but its 200,000-token daily
-  quota was exhausted by earlier runs, so the final numbers come from `gpt-oss-20b`, the failover
-  model. An earlier test-set run on `gpt-oss-120b` with the same retrieval settings also scored
-  20 / 20. The final configuration has not been measured on `gpt-oss-120b`.
+  quota was exhausted by earlier runs, so the numbers come from the two failover models (see the
+  table under Results). An earlier test-set run on `gpt-oss-120b`, with the first version's
+  settings, also scored 20 / 20. The current configuration has not been measured on `gpt-oss-120b`.
 - **Answer accuracy is a keyword match**, which checks that the right number or name is present,
   not that the whole sentence is correct.
 
@@ -261,11 +276,11 @@ the CLI prints the result but does not overwrite the saved one.
 ## Automated tests
 
 ```bash
-pytest          # 164 tests, about 6 seconds, no API key or network needed
+pytest          # 169 tests, about 6 seconds, no API key or network needed
 ruff check .
 ```
 
-Latest run: **164 passed, 0 failed**. The full output is recorded in
+Latest run: **169 passed, 0 failed**. The full output is recorded in
 [`tests/RESULTS.md`](../tests/RESULTS.md). The same two commands run on every push
 (`.github/workflows/ci.yml`).
 
@@ -274,7 +289,7 @@ Latest run: **164 passed, 0 failed**. The full output is recorded in
 | Chunking | Size limit, overlap, no lost text, metadata |
 | Dedupe | Same file twice keeps one set of chunks; same name with new content replaces |
 | Similarity | Distance converts correctly; a close match outscores a far one |
-| Retrieval | A known question returns the expected chunk; PDF page numbers; BM25 fusion; reranking |
+| Retrieval | A known question returns the expected chunk; PDF page numbers; BM25 fusion; reranking; chunks next to a hit are added, gaps between hits first |
 | API | Ingest then ask end to end; list, delete, reset |
 | Input failures | Unsupported type, empty file, corrupt PDF, oversize file, empty or too-long question |
 | State failures | Asking with no documents |
@@ -282,7 +297,7 @@ Latest run: **164 passed, 0 failed**. The full output is recorded in
 | Provider client | Request shape, rate-limit and bad-JSON handling, timeouts, against a fake HTTP transport |
 | Configuration | `.env.example` matches the code defaults and holds no secrets |
 | Grounding | Gate skips the LLM; hallucinated citation stripped; uncited answer refused; abstention respected; a figure not in the cited passage is flagged |
-| Excerpts | The quoted evidence contains the words of the answer; form values are quoted with their label, not a section heading; a second source shows what the first did not |
+| Excerpts | The quoted evidence contains the words of the answer; form values are quoted with their label, not a section heading; a second source shows what the first did not; a sentence a PDF wrapped over two lines is quoted whole |
 | Prompt injection | Injected text stays inside its source block; an obedient model is still blocked |
 | Recursion | Depth cap, sub-question cap, no duplicate chunks, fallback when the split fails; second pass after an abstention |
 | Generated evaluation | Questions written from the library with verified gold labels; unverifiable drafts discarded; LLM judge; report survives a restart |

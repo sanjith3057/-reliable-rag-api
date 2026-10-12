@@ -79,6 +79,16 @@ class VectorStore:
             for chunk_id, vector in zip(result["ids"], result["embeddings"], strict=True)
         }
 
+    def get_chunks(self, chunk_ids: list[str]) -> list[Chunk]:
+        """The stored chunks with these ids. Ids that do not exist are skipped."""
+        if not chunk_ids:
+            return []
+        result = self._collection.get(ids=chunk_ids, include=["documents", "metadatas"])
+        return [
+            _to_chunk(chunk_id, text, meta)
+            for chunk_id, text, meta in zip(result["ids"], result["documents"], result["metadatas"], strict=True)
+        ]
+
     def all_chunks(self) -> list[Chunk]:
         result = self._collection.get(include=["documents", "metadatas"])
         return [

@@ -65,3 +65,22 @@ def test_excerpt_is_capped_in_length_and_sentences():
     excerpt = best_excerpt(text, "What do the items cost?", answer, HashEmbedder())
     assert excerpt.count(" … ") <= 2
     assert len(excerpt) <= 400
+
+
+def test_a_sentence_wrapped_over_pdf_lines_is_quoted_whole():
+    wrapped = (
+        "The software stack is carefully selected. Python 3.12 serves as the primary programming language, chosen\n"
+        "for its extensive support for computer vision libraries. OpenCV 4.5 is utilized for image processing."
+    )
+    excerpt = best_excerpt(wrapped, "Which language is used?", "Python 3.12", HashEmbedder())
+    assert excerpt == (
+        "Python 3.12 serves as the primary programming language, chosen "
+        "for its extensive support for computer vision libraries."
+    )
+
+
+def test_a_long_excerpt_is_cut_at_a_word_and_marked():
+    sentence = "The answer is forty-two " + "and it goes on and on " * 30 + "until the end."
+    excerpt = best_excerpt(sentence, "What is the answer?", "forty-two", HashEmbedder())
+    assert len(excerpt) <= 402
+    assert excerpt.endswith(" …")

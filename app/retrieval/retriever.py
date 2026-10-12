@@ -46,6 +46,44 @@ class Retriever:
             candidates = [candidates[i] for i in order]
         return candidates[:k]
 
+    def with_neighbours(self, query: str, chunks: list[ScoredChunk], limit: int) -> list[ScoredChunk]:
+        """Add the chunks that sit next to the retrieved ones in their document, up to `limit` in total.
+
+        A list or a section is often longer than one chunk, and search may return its first and last
+        part but not the middle. Chunks between two retrieved ones are added first, then the chunk
+        after each hit, then the chunk before it.
+        """
+        room = limit - len(chunks)
+        if room <= 0 or not chunks:
+            return chunks
+        seen = {(item.chunk.doc_id, item.chunk.index) for item in chunks}
+        wanted: list[str] = []
+
+        def want(doc_id: str, index: int) -> None:
+            if index >= 0 and (doc_id, index) not in seen:
+                seen.add((doc_id, index))
+                wanted.append(f"{doc_id}:{index}")  # the chunk id format set by the chunker
+
+        positions: dict[str, list[int]] = {}
+        for item in chunks:
+            positions.setdefault(item.chunk.doc_id, []).append(item.chunk.index)
+        for doc_id, indexes in positions.items():
+            indexes.sort()
+            for first, second in zip(indexes, indexes[1:], strict=False):
+                if second - first <= 3:
+                    for index in range(first + 1, second):
+                        want(doc_id, index)
+        for step in (1, -1):
+            for item in chunks:
+                want(item.chunk.doc_id, item.chunk.index + step)
+
+        found = {chunk.chunk_id: chunk for chunk in self.store.get_chunks(wanted)}
+        extra = [found[chunk_id] for chunk_id in wanted if chunk_id in found][:room]
+        if not extra:
+            return chunks
+        similarities = self.store.similarities([chunk.chunk_id for chunk in extra], self.embedder.embed_query(query))
+        return chunks + [ScoredChunk(chunk=chunk, score=similarities.get(chunk.chunk_id, 0.0)) for chunk in extra]
+
     def _fuse_with_bm25(self, query: str, embedding: list[float], dense: list[ScoredChunk]) -> list[ScoredChunk]:
         """Weighted reciprocal-rank fusion: each list contributes weight / rank."""
         keyword_hits = self._bm25_index().search(query, self.raw_k)

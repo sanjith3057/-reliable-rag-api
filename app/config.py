@@ -49,6 +49,9 @@ class Settings(BaseSettings):
     max_depth: int = 2
     max_sub_questions: int = 3
     max_context_chunks: int = 8
+    # Fill the context up to max_context_chunks with the chunks next to the retrieved ones, so a list
+    # or section that was split across chunks reaches the model whole.
+    include_neighbour_chunks: bool = True
     second_pass_on_abstain: bool = True  # if the model abstains, split the question and try once more
 
     # Second-stage retrieval. The reranker is on because dense search alone misses passages in real

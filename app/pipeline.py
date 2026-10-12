@@ -135,6 +135,10 @@ class RagService:
         if trace.top_similarity < self.settings.similarity_threshold:
             return self._finish(question, _abstain("below_threshold"), chunks, trace, timings)
 
+        if self.settings.include_neighbour_chunks:
+            with timed(timings, "retrieval_ms"):
+                chunks = self.retriever.with_neighbours(question, chunks, self.settings.max_context_chunks)
+
         verdict, labels = self._generate(question, chunks, timings)
 
         # Second chance. If the model found the evidence insufficient and the question has several

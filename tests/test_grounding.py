@@ -137,6 +137,7 @@ def test_number_check_ignores_formatting_and_the_question():
     assert unsupported_numbers("It is 8 hours longer.", "?", ["14 hours", "22 hours"]) == ["8"]
     assert unsupported_numbers("No figures here.", "?", ["text"]) == []
     assert unsupported_numbers("4", "?", ["it picks one of four actions"]) == [], "a number word backs its digit"
+    assert unsupported_numbers("8 GB of RAM", "?", ["supported by 8.00 GB of RAM"]) == [], "8.00 is 8"
 
 
 # ── Wording check ────────────────────────────────────────────────────────────

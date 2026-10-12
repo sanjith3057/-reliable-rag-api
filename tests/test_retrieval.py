@@ -1,3 +1,5 @@
+from app.domain import ScoredChunk
+from app.generation.providers import FakeLLM
 from app.retrieval.embedder import HashEmbedder
 from app.retrieval.reranker import Reranker
 from app.retrieval.retriever import Retriever
@@ -62,3 +64,42 @@ def test_reranker_reorders_candidates():
 
     assert "Orbit B2" in results[0].chunk.text
     assert len(results) == 3
+
+
+# ── Neighbouring chunks ──────────────────────────────────────────────────────
+def _long_document_service():
+    service = make_service()
+    text = "\n\n".join(f"Section {i}. " + f"Topic {i} is described here in some detail. " * 14 for i in range(8))
+    service.ingest("long.txt", text.encode())
+    chunks = sorted(service.store.all_chunks(), key=lambda chunk: chunk.index)
+    assert len(chunks) >= 7
+    return service, chunks
+
+
+def test_chunks_between_two_hits_are_added_first():
+    service, chunks = _long_document_service()
+    hits = [ScoredChunk(chunks[1], 0.9), ScoredChunk(chunks[4], 0.8)]
+
+    result = service.retriever.with_neighbours("topic", hits, limit=4)
+
+    assert [item.chunk.index for item in result] == [1, 4, 2, 3], "the hits keep their place; the gap is filled"
+    assert all(0.0 <= item.score <= 1.0 for item in result)
+
+
+def test_neighbours_follow_each_hit_and_respect_the_limit():
+    service, chunks = _long_document_service()
+    hits = [ScoredChunk(chunks[0], 0.9), ScoredChunk(chunks[5], 0.8)]
+
+    assert [c.chunk.index for c in service.retriever.with_neighbours("topic", hits, limit=5)] == [0, 5, 1, 6, 4]
+    assert service.retriever.with_neighbours("topic", hits, limit=2) == hits, "no room, nothing added"
+
+
+def test_the_whole_section_reaches_the_model():
+    llm = FakeLLM()
+    service = make_service(llm, top_k=1, max_context_chunks=3)
+    text = "\n\n".join(f"Section {i}. " + f"Topic {i} is described here in some detail. " * 14 for i in range(8))
+    service.ingest("long.txt", text.encode())
+
+    service.ask("Topic 3 is described here in some detail.")
+
+    assert llm.calls[-1][1].count("<source id=") == 3, "one hit plus its two neighbours"

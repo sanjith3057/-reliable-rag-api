@@ -17,8 +17,39 @@ _STOPWORDS = frozenset(
 )
 
 
+_LIST_ITEM = re.compile(r"(\d+\.|[-*•#])\s")
+
+
+def _is_soft_wrap(line: str, following: str) -> bool:
+    """True when a line break is only a PDF wrapping one sentence, not the end of a field or a row."""
+    if len(line) < 40 or not following or line[-1] in ".!?:":
+        return False
+    if following[0].islower():
+        return True
+    # A long line with no closing punctuation is running prose, unless the next line starts something new.
+    return len(line) >= 60 and "|" not in line and not following.isupper() and not _LIST_ITEM.match(following)
+
+
+def _unwrap(text: str) -> str:
+    lines = [line.strip() for line in text.split("\n")]
+    out: list[str] = []
+    for line in lines:
+        if out and _is_soft_wrap(out[-1], line):
+            out[-1] = f"{out[-1]} {line}"
+        else:
+            out.append(line)
+    return "\n".join(out)
+
+
+def _clip(text: str, max_chars: int) -> str:
+    """Cut at a word boundary and mark the cut, so a long excerpt does not end mid-word."""
+    if len(text) <= max_chars:
+        return text
+    return text[:max_chars].rsplit(" ", 1)[0].rstrip(" ,;:…") + " …"
+
+
 def split_sentences(text: str) -> list[str]:
-    parts = re.split(r"(?<=[.!?])\s+|\n+", text)
+    parts = re.split(r"(?<=[.!?])\s+|\n+", _unwrap(text))
     return [part.strip(" \t-*#|") for part in parts if part.strip(" \t-*#|")]
 
 
@@ -79,7 +110,7 @@ def _excerpt(
     max_chars = 400
     sentences = split_sentences(text)
     if not sentences:
-        return text.strip()[:max_chars], set()
+        return _clip(text.strip(), max_chars), set()
 
     # Form fields and table cells have no closing punctuation, so every line is a candidate here.
     chosen, found = _covering(sentences, wanted, max_sentences)
@@ -87,7 +118,7 @@ def _excerpt(
         chosen, _ = _covering(sentences, content_terms(answer), max_sentences)
     if chosen:
         parts = [_with_label(sentences, i, chosen) for i in sorted(chosen)]
-        return " … ".join(parts)[:max_chars].rstrip(), found
+        return _clip(" … ".join(parts), max_chars), found
     return _closest_sentences(sentences, f"{question} {answer}", embedder, max_sentences, max_chars), set()
 
 
@@ -96,7 +127,7 @@ def _closest_sentences(sentences: list[str], query: str, embedder: Embedder, max
     # Headings and list labels have no closing punctuation; they are not evidence on their own.
     candidates = [s for s in sentences if len(s) >= _MIN_SENTENCE_CHARS and s[-1] in ".!?"] or sentences
     if len(candidates) == 1:
-        return candidates[0][:max_chars]
+        return _clip(candidates[0], max_chars)
 
     query_vector = embedder.embed_query(query)
     scores = [cosine(vector, query_vector) for vector in embedder.embed_documents(candidates)]
@@ -110,4 +141,4 @@ def _closest_sentences(sentences: list[str], query: str, embedder: Embedder, max
             picked.append(index)
 
     excerpt = " … ".join(candidates[i] for i in sorted(picked))
-    return excerpt[:max_chars].rstrip()
+    return _clip(excerpt, max_chars)

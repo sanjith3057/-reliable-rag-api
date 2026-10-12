@@ -69,6 +69,7 @@ Three things sit behind interfaces so they can be swapped without touching the p
 | Rerank | A cross-encoder re-scores the 20 and the best 5 are kept (`TOP_K`). |
 | Gate | If the best cosine similarity is below 0.40, return "not available" with `abstain_reason: below_threshold`. No LLM call is made. |
 | Split, if weak | If the best score is between 0.40 and 0.60, the question is split into up to 3 sub-questions and each is retrieved separately, to a depth of 2. |
+| Neighbours | The context is filled up to 8 chunks (`MAX_CONTEXT_CHUNKS`) with chunks adjacent to the retrieved ones in the same document: first any chunks lying between two hits, then the chunk after each hit, then the chunk before. |
 | Ask the LLM | Passages are placed in `<source>` blocks, strongest at the start and end. The model must return JSON: a plan, a per-source evidence check, the answer, and the source ids it used. |
 | Second pass | If the model says the evidence is insufficient and the question has parts, split, retrieve and ask once more. |
 | Validate | Citations not in the retrieved set are dropped, as are citations to sources the model itself marked as distractors. No citation left means "not available" (`no_valid_citations`). |
@@ -206,7 +207,9 @@ The most useful ones:
 | `LLM_FALLBACK_MODEL` | provider default | Comma-separated models tried while the main one is rate limited |
 | `LLM_TIMEOUT_S` / `LLM_MAX_RETRIES` | 30 / 2 | Per-call timeout and retries |
 | `EMBEDDING_MODEL` | `BAAI/bge-small-en-v1.5` | Local embedding model |
-| `TOP_K` | 5 | Passages given to the LLM |
+| `TOP_K` | 5 | Passages kept after search and reranking |
+| `MAX_CONTEXT_CHUNKS` | 8 | Most passages given to the LLM, neighbours included |
+| `INCLUDE_NEIGHBOUR_CHUNKS` | true | Add the chunks next to the retrieved ones |
 | `SIMILARITY_THRESHOLD` | 0.40 | The gate: below this, no LLM call |
 | `ENABLE_RERANKER` | true | Cross-encoder reranking of the top 20 |
 | `ENABLE_HYBRID` | false | Add BM25 keyword search to dense search |
@@ -315,6 +318,15 @@ hallucination, and it is cheap to catch: every number in an answer must appear i
 or in the question. A miss is reported as a warning, not a refusal, because a correct answer can
 contain a figure the model worked out, such as a difference between two values.
 
+**Neighbouring chunks are added to the context.** A 58-page project report showed why. Its
+"Software Specification" section is one long paragraph that spans four chunks. Asked "what is the
+tech stack used here", search returned the first and the last of them and two bibliography entries,
+so the answer listed Windows, Python, Pygame, NumPy and Pandas and left out OpenCV and TensorFlow,
+which are in the middle. Now the chunks between two hits, and the ones just after and before each
+hit, fill the context up to 8. The same question then also returns OpenCV and TensorFlow. It still
+left out MediaPipe and MTCNN in my runs, so a long list can remain incomplete. The cost is up to
+three more chunks of tokens per question.
+
 **Excerpts that contain the answer, without another LLM call.** The cited chunk is split into lines
 and sentences, and the ones that together contain the most words of the answer are quoted. When a
 second chunk is cited, it shows the part of the answer the first did not. If no line shares a word
@@ -322,7 +334,8 @@ with the answer (a paraphrase), the sentences closest in meaning are used instea
 ranked only by similarity to the question and skipped lines without closing punctuation. On a
 filled-in PDF form that showed a section heading ("EMERGENCY CONTACT 3.") under a correct answer,
 because form values such as a name or a phone number are bare lines. The answer was grounded but
-the evidence on screen did not show it.
+the evidence on screen did not show it. Lines that a PDF wrapped in the middle of a sentence are
+joined again first, so the excerpt is a whole sentence and not a fragment of one.
 
 **Lazy imports.** ChromaDB, pypdf, the BM25 library, the HTTP client and sentence-transformers are
 imported inside the functions that first need them, not at module load. Importing the app dropped
@@ -359,7 +372,8 @@ What this does not do, grouped by where it would bite.
 
 **Retrieval and answers**
 
-- **Fixed-size chunks.** A table or long list can be split across two chunks.
+- **Fixed-size chunks.** A table or long list can be split across chunks. Adding neighbouring
+  chunks helps, but an answer that needs a whole long section can still miss items.
 - **Forms lose their layout.** Text extracted from a PDF form comes out as bare lines, and a value
   can land far from its label, or in a different chunk. The model has to match values to labels by
   itself, and a weaker model gets it wrong: on a test form, the last model in the failover chain
@@ -377,7 +391,7 @@ What this does not do, grouped by where it would bite.
   which is weaker evidence than a line containing the answer itself.
 - **Multi-part questions across distant sections can still fail**, as r12 did in one of two runs.
 - **Whole-document questions get partial answers.** "Summarise this document" is answered from the
-  5 best-matching chunks, not the whole file.
+  best-matching chunks and their neighbours (8 at most), not the whole file.
 - **The number check is a warning and only covers figures.** It flags a number that is not in the
   cited passages, including one the model correctly worked out. An invented claim with no number in
   it is caught only by the citation rules and, in evaluation, by the judge.

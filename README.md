@@ -84,6 +84,8 @@ possible. Uploading the same file twice replaces it; nothing is duplicated.
 
 1. **Search.** Find the 20 pieces whose meaning is closest to the question.
 2. **Rerank.** A second, more careful model re-reads those 20 and keeps the best 5.
+   The pieces that sit next to them in the document are added too (up to 8 in all), so a list or
+   section that was split across pieces reaches the AI model whole.
 3. **Gate.** If even the best piece is unrelated to the question, stop here and say "not available".
    The AI model is never called, so it cannot guess.
 4. **Ask the AI model.** It is given only those pieces and told to answer from them and to name the
@@ -116,7 +118,7 @@ These sets are small, and one question on the GDPR set passed in one run and fai
 The full numbers, the runs that went badly and what was changed are in
 [Evaluation and tests](docs/EVALUATION.md).
 
-There are also 164 automated tests. They run in about 6 seconds with no API key and no internet.
+There are also 169 automated tests. They run in about 6 seconds with no API key and no internet.
 
 ```bash
 pytest
@@ -165,7 +167,7 @@ docs/                user guide, system design, evaluation, diagrams
 eval/                question sets and recorded results
 sample_docs/         8 made-up company documents to try it with
 real_docs/           one real 88-page PDF (the GDPR regulation)
-tests/               164 automated tests and their recorded results
+tests/               169 automated tests and their recorded results
 Dockerfile, docker-compose.yml
 ```
 
@@ -182,7 +184,7 @@ Dockerfile, docker-compose.yml
 | At least 10 evaluation questions of three kinds | 59 questions in `eval/`: answerable, unanswerable, multi-evidence, distractor |
 | Clean, modular Python | One package per stage; models sit behind interfaces |
 | Environment variables for keys and config | `app/config.py`, `.env.example` |
-| Tests for retrieval, API behaviour, failure cases | `tests/` (164 tests), results in [`tests/RESULTS.md`](tests/RESULTS.md) |
+| Tests for retrieval, API behaviour, failure cases | `tests/` (169 tests), results in [`tests/RESULTS.md`](tests/RESULTS.md) |
 | Docker support and setup documentation | `Dockerfile`, `docker-compose.yml`, "Run it" above |
 | Existing LLM API, no training from scratch | Groq, OpenAI or Gemini; the embedding model is pretrained |
 | Sample documents and evaluation questions | `sample_docs/`, `real_docs/`, `eval/questions_*.json` |
@@ -193,7 +195,7 @@ Dockerfile, docker-compose.yml
 
 - **Scanned PDFs do not work.** The file must contain real text, not photos of pages.
 - **English only.**
-- **"Summarise this document" gets a partial answer.** It answers from the 5 best-matching pieces,
+- **"Summarise this document" gets a partial answer.** It answers from at most 8 pieces of the document,
   not the whole file.
 - **A table can be cut in half** when a document is split into pieces.
 - **Forms are harder than prose.** A PDF form loses its layout when read, so a value can end up far
