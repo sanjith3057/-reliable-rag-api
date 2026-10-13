@@ -20,7 +20,7 @@ How the system was measured, what the numbers are, and how much to trust them.
 | 18 questions on the 88-page GDPR regulation | 18 / 18 |
 | 10 generated questions on a document never used for tuning | 10 / 10 |
 | 18 questions on a filled-in form and a handwritten scan | 17 / 18; the miss is a handwritten date the OCR misread |
-| 21 questions on a 48-page project report | 18 of 21 ran and all 18 passed; the last 3 were stopped by the provider's daily limit, so the run is not saved |
+| 21 questions on a 48-page project report | 21 / 21 |
 | 194 automated tests | 194 passed |
 
 Every evaluation number comes from a live run: real retrieval, the real LLM, no mocks. The sets are
@@ -158,21 +158,24 @@ Added on 13 Oct 2026. The document is a 48-page undergraduate project report (96
 a table of contents, a bibliography, source code, and example text in Hindi, French and Tamil. 21
 questions: 5 at level 1, 5 at level 2, 3 at level 3, 4 at level 4 and 4 at level 5.
 
-**Status: one partial run, not saved.** On `qwen/qwen3.8-27b`, the last model in the chain, with
-the other two out of quota:
+**Result: 21 / 21** on `qwen/qwen3.8-27b`, the last and weakest model in the chain, because the
+other two were out of quota. Per-question table: [`eval/results_report.md`](../eval/results_report.md).
 
-| Level | Questions | Ran | Passed |
-| --- | --- | --- | --- |
-| 1. One fact | 5 | 5 | 5 |
-| 2. Several facts, one passage | 5 | 5 | 5 |
-| 3. Facts from different places | 3 | 3 | 3 |
-| 4. A near-miss sits close by | 4 | 4 | 4 |
-| 5. Must be refused | 4 | 1 | 1 |
+| Level | Questions | Passed |
+| --- | --- | --- |
+| 1. One fact | 5 | 5 |
+| 2. Several facts, one passage | 5 | 5 |
+| 3. Facts from different places | 3 | 3 |
+| 4. A near-miss sits close by | 4 | 4 |
+| 5. Must be refused | 4 | 4 |
 
-The last three questions, all level 5, returned `LLM_RATE_LIMITED`. Whether the system refuses
-them is not known. Because the run has provider errors it was not written to
-`eval/results_report.md`, and the question bank shows this set as not run. Run
-`python eval/run_eval.py --dataset report` to complete it.
+An earlier run the same day stopped after 18 questions on the provider's limit; those 18 had
+also passed. The four refusals each took about 23 seconds: the gate lets them through (the report
+is on topic), the model says the fact is not there, and the second pass searches again before
+the system gives up.
+
+A perfect score here says less than it seems to. I wrote the questions with the document open,
+and reworded four of them, as described next.
 
 **The questions were reworded once, before any run with the AI model.** In the first draft every
 question named "the offensive language detection project". A retrieval check without the AI model
@@ -288,8 +291,8 @@ The last two rows are failures that remain. Both are listed under
 
 12. **A long report, levels, and an optional second reader.** A 48-page project report joined the
     corpus with 21 questions in five levels, every reported question got a level, and a vision
-    model can now be switched on to re-read pages the local OCR is unsure of. The report set has
-    one partial run: 18 of 18 passed before the quota ran out.
+    model can now be switched on to re-read pages the local OCR is unsure of. The report set scored
+    21 / 21 on the weakest model in the chain.
 
 Steps 2 to 10 used information from outside the dev set, including the earlier real-set runs, so the
 real-set score is not a clean held-out number. No change was made to target r12 specifically.

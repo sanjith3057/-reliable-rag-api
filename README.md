@@ -134,12 +134,12 @@ Measured with the real AI model, not a simulation, on 13 Oct 2026.
 | 20 questions on 8 made-up company documents | Answers must come from the documents, because no AI model knows these facts | 20 / 20 |
 | 18 questions on the 88-page GDPR regulation | Finding the right passage in a long, dense, real document | 18 / 18 |
 | 18 questions on a filled-in form and a handwritten scan | Documents that are not prose, and text read with OCR | 17 / 18 |
-| 21 questions on a 48-page project report, in five difficulty levels | From single facts up to questions that must be refused | 18 of 21 ran and all 18 passed; the last 3 were stopped by the provider's daily limit, so the run is not saved |
+| 21 questions on a 48-page project report, in five difficulty levels | From single facts up to questions that must be refused | 21 / 21 |
 | 10 questions written automatically from a document it had never seen | Does it work on someone else's file? | 10 / 10 |
 
 The one miss is the date on the handwritten page: it says 2024 and the OCR read 2624. The first
 three sets were run before the project report was added to the bundled documents and have not
-been re-run with it. These sets are small and I wrote most of them, and earlier runs scored lower:
+been re-run with it; the report set ran on the weakest of the three models. These sets are small and I wrote most of them, and earlier runs scored lower:
 one question on the GDPR set has passed in some runs and failed in others.
 
 The same questions grouped by difficulty level and by document format (PDF, Markdown, plain text,

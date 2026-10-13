@@ -8,12 +8,12 @@ Written by `python eval/question_bank.py`; do not edit by hand.
 
 | Level | Kind of question | What makes it hard | Questions | Passed |
 | --- | --- | --- | --- | --- |
-| 1 | One fact | The answer is one fact stated in one place | 30 | 24 / 25 |
-| 2 | Several facts, one passage | A list or a few facts that sit together | 7 | 2 / 2 |
-| 3 | Facts from different places | The answer needs two passages, or two documents | 12 | 9 / 9 |
-| 4 | A near-miss sits close by | A similar but wrong value is in another document, version or section | 7 | 3 / 3 |
-| 5 | Must be refused | The documents are on topic but do not state the fact, or it is off topic | 21 | 17 / 17 |
-| | **All** | | 77 | 55 / 56 |
+| 1 | One fact | The answer is one fact stated in one place | 30 | 29 / 30 |
+| 2 | Several facts, one passage | A list or a few facts that sit together | 7 | 7 / 7 |
+| 3 | Facts from different places | The answer needs two passages, or two documents | 12 | 12 / 12 |
+| 4 | A near-miss sits close by | A similar but wrong value is in another document, version or section | 7 | 7 / 7 |
+| 5 | Must be refused | The documents are on topic but do not state the fact, or it is off topic | 21 | 21 / 21 |
+| | **All** | | 77 | 76 / 77 |
 
 ## Results by document format
 
@@ -21,11 +21,11 @@ Written by `python eval/question_bank.py`; do not edit by hand.
 | --- | --- | --- |
 | Markdown | 7 | 7 / 7 |
 | Mixed (Markdown + PDF (typed)) | 1 | 1 / 1 |
-| PDF (typed) | 32 | 15 / 15 |
+| PDF (typed) | 32 | 32 / 32 |
 | PDF form (labels and values) | 10 | 10 / 10 |
 | Plain text | 3 | 3 / 3 |
 | Scanned PDF (read with OCR) | 3 | 2 / 3 |
-| No document (must be refused) | 21 | 17 / 17 |
+| No document (must be refused) | 21 | 21 / 21 |
 
 ## Level by set
 
@@ -33,7 +33,7 @@ Written by `python eval/question_bank.py`; do not edit by hand.
 | --- | --- | --- | --- | --- | --- | --- |
 | test | 6 / 6 | - | 4 / 4 | 3 / 3 | 7 / 7 | 2026-10-13, groq/openai/gpt-oss-120b |
 | real | 10 / 10 | - | 3 / 3 | - | 5 / 5 | 2026-10-13, groq/openai/gpt-oss-120b |
-| report | not run yet | not run yet | not run yet | not run yet | not run yet | not run yet |
+| report | 5 / 5 | 5 / 5 | 3 / 3 | 4 / 4 | 4 / 4 | 2026-10-13, groq/qwen/qwen3.8-27b |
 | forms | 8 / 9 | 2 / 2 | 2 / 2 | - | 5 / 5 | 2026-10-13, groq/openai/gpt-oss-20b |
 
 ## Test set: 8 made-up company documents
@@ -88,27 +88,27 @@ Written by `python eval/question_bank.py`; do not edit by hand.
 
 | ID | Level | Format | Question | Passed |
 | --- | --- | --- | --- | --- |
-| p01 | 1 | PDF (typed) | Which language model does the offensive language detection project fine-tune? | not run |
-| p02 | 1 | PDF (typed) | Which GPU was used to fine-tune the Distil-BERT model? | not run |
-| p03 | 1 | PDF (typed) | Who guided the offensive language detection project? | not run |
-| p04 | 1 | PDF (typed) | On what date was the viva-voce examination for the offensive language detection project held? | not run |
-| p05 | 1 | PDF (typed) | What is the maximum input length, in tokens, that the offensive language detection system accepts? | not run |
-| p06 | 2 | PDF (typed) | Into which four categories does the offensive language detection system classify text? | not run |
-| p07 | 2 | PDF (typed) | Which framework and libraries are used to build and deploy the Distil-BERT content detection system? | not run |
-| p08 | 2 | PDF (typed) | How much RAM and how much storage does the hardware specification for fine-tuning Distil-BERT call for? | not run |
-| p09 | 2 | PDF (typed) | Which evaluation metrics are used to test the offensive language detection system? | not run |
-| p10 | 2 | PDF (typed) | Which two interfaces does the offensive language detection system offer, and who is each one for? | not run |
-| p11 | 3 | PDF (typed) | How does the offensive language detection system support languages other than English, and which external APIs does it use? | not run |
-| p12 | 3 | PDF (typed) | What limitations does the conclusion of the offensive language detection project name, and what multimedia support is proposed as future development? | not run |
-| p13 | 3 | PDF (typed) | What do existing offensive language detection systems struggle with, and what does the proposed system combine to handle implicit content? | not run |
-| p14 | 4 | PDF (typed) | What batch size does the report recommend for training on the RTX 2050, and what batch size is set in the source code of the offensive language detection project? | not run |
-| p15 | 4 | PDF (typed) | On which port does the Flask API of the offensive language detection project run, and on which port is the Gradio interface launched? | not run |
-| p16 | 4 | PDF (typed) | What label and what confidence did the content detection system give the Hindi complaint about a useless service? | not run |
-| p17 | 4 | PDF (typed) | How many training epochs does the configuration in the source code of the offensive language detection project specify? | not run |
-| p18 | 5 | No document (must be refused) | What overall accuracy percentage did the offensive language detection model achieve on its test set? | not run |
-| p19 | 5 | No document (must be refused) | How many hours did it take to train the offensive language detection model? | not run |
-| p20 | 5 | No document (must be refused) | What grade was awarded for the offensive language detection project report? | not run |
-| p21 | 5 | No document (must be refused) | How many text samples from Twitter are in the dataset of the offensive language detection project? | not run |
+| p01 | 1 | PDF (typed) | Which language model does the offensive language detection project fine-tune? | yes |
+| p02 | 1 | PDF (typed) | Which GPU was used to fine-tune the Distil-BERT model? | yes |
+| p03 | 1 | PDF (typed) | Who guided the offensive language detection project? | yes |
+| p04 | 1 | PDF (typed) | On what date was the viva-voce examination for the offensive language detection project held? | yes |
+| p05 | 1 | PDF (typed) | What is the maximum input length, in tokens, that the offensive language detection system accepts? | yes |
+| p06 | 2 | PDF (typed) | Into which four categories does the offensive language detection system classify text? | yes |
+| p07 | 2 | PDF (typed) | Which framework and libraries are used to build and deploy the Distil-BERT content detection system? | yes |
+| p08 | 2 | PDF (typed) | How much RAM and how much storage does the hardware specification for fine-tuning Distil-BERT call for? | yes |
+| p09 | 2 | PDF (typed) | Which evaluation metrics are used to test the offensive language detection system? | yes |
+| p10 | 2 | PDF (typed) | Which two interfaces does the offensive language detection system offer, and who is each one for? | yes |
+| p11 | 3 | PDF (typed) | How does the offensive language detection system support languages other than English, and which external APIs does it use? | yes |
+| p12 | 3 | PDF (typed) | What limitations does the conclusion of the offensive language detection project name, and what multimedia support is proposed as future development? | yes |
+| p13 | 3 | PDF (typed) | What do existing offensive language detection systems struggle with, and what does the proposed system combine to handle implicit content? | yes |
+| p14 | 4 | PDF (typed) | What batch size does the report recommend for training on the RTX 2050, and what batch size is set in the source code of the offensive language detection project? | yes |
+| p15 | 4 | PDF (typed) | On which port does the Flask API of the offensive language detection project run, and on which port is the Gradio interface launched? | yes |
+| p16 | 4 | PDF (typed) | What label and what confidence did the content detection system give the Hindi complaint about a useless service? | yes |
+| p17 | 4 | PDF (typed) | How many training epochs does the configuration in the source code of the offensive language detection project specify? | yes |
+| p18 | 5 | No document (must be refused) | What overall accuracy percentage did the offensive language detection model achieve on its test set? | yes |
+| p19 | 5 | No document (must be refused) | How many hours did it take to train the offensive language detection model? | yes |
+| p20 | 5 | No document (must be refused) | What grade was awarded for the offensive language detection project report? | yes |
+| p21 | 5 | No document (must be refused) | How many text samples from Twitter are in the dataset of the offensive language detection project? | yes |
 
 ## Forms set: a filled-in form and a handwritten scan
 
