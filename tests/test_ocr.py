@@ -7,7 +7,7 @@ import pytest
 from app.errors import AppError
 from app.ingestion.loaders import load_document
 from app.ingestion.ocr import OcrUnavailable, lines_in_reading_order, ocr_pdf_pages
-from tests.conftest import SAMPLE_DOCS, assert_error, make_client, upload
+from tests.conftest import SAMPLE_DOCS, assert_error, make_client, make_service, upload
 
 LIMIT = 10_000_000
 
@@ -107,3 +107,17 @@ def test_a_real_scan_is_read_and_becomes_searchable():
     assert response.json()["ocr_pages"] == 1
     sources = client.post("/ask", json={"question": "When are refunds issued?"}).json()["sources"]
     assert "14 days" in sources[0]["excerpt"]
+
+
+def test_loading_a_folder_skips_a_scan_when_ocr_is_missing(tmp_path, monkeypatch):
+    def unavailable(data, page_numbers):
+        raise OcrUnavailable("No module named 'rapidocr_onnxruntime'")
+
+    monkeypatch.setattr("app.pipeline.ocr_pdf_pages", unavailable)
+    (tmp_path / "scan.pdf").write_bytes(scanned_pdf("Invoice total 4200"))
+    (tmp_path / "notes.txt").write_text("Refunds are issued within 14 days.", encoding="utf-8")
+    service = make_service()
+
+    ingested = service.ingest_directory(str(tmp_path))
+
+    assert [doc.doc_name for doc in ingested] == ["notes.txt"]

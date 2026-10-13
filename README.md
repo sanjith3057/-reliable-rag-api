@@ -144,7 +144,7 @@ not been re-run since. One question on the GDPR set has passed in some runs and 
 The full numbers, the runs that went badly and what was changed are in
 [Evaluation and tests](docs/EVALUATION.md).
 
-There are also 185 automated tests. They run in under 20 seconds with no API key and no internet.
+There are also 186 automated tests. They run in under 20 seconds with no API key and no internet.
 
 ```bash
 pytest
@@ -193,7 +193,7 @@ docs/                user guide, system design, evaluation, diagrams
 eval/                question sets and recorded results
 sample_docs/         8 made-up company documents to try it with
 real_docs/           the 88-page GDPR regulation, a filled-in form and a handwritten scan
-tests/               185 automated tests and their recorded results
+tests/               186 automated tests and their recorded results
 Dockerfile, docker-compose.yml
 ```
 
@@ -210,7 +210,7 @@ Dockerfile, docker-compose.yml
 | At least 10 evaluation questions of three kinds | 77 questions in `eval/`: answerable, unanswerable, multi-evidence, distractor |
 | Clean, modular Python | One package per stage; models sit behind interfaces |
 | Environment variables for keys and config | `app/config.py`, `.env.example` |
-| Tests for retrieval, API behaviour, failure cases | `tests/` (185 tests), results in [`tests/RESULTS.md`](tests/RESULTS.md) |
+| Tests for retrieval, API behaviour, failure cases | `tests/` (186 tests), results in [`tests/RESULTS.md`](tests/RESULTS.md) |
 | Docker support and setup documentation | `Dockerfile`, `docker-compose.yml`, "Run it" above |
 | Existing LLM API, no training from scratch | Groq, OpenAI or Gemini; the embedding model is pretrained |
 | Sample documents and evaluation questions | `sample_docs/`, `real_docs/`, `eval/questions_*.json` |

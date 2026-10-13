@@ -116,7 +116,16 @@ class RagService:
         if not folder.is_dir():
             raise AppError("SAMPLE_DOCS_NOT_FOUND", f"Folder '{directory}' does not exist", 404)
         files = sorted(p for p in folder.iterdir() if p.suffix.lower() in SUPPORTED_EXTENSIONS)
-        return [self.ingest(path.name, path.read_bytes()) for path in files]
+        ingested = []
+        for path in files:
+            try:
+                ingested.append(self.ingest(path.name, path.read_bytes()))
+            except AppError as exc:
+                # One scanned file must not stop the rest of a folder from loading.
+                if exc.code != "OCR_UNAVAILABLE":
+                    raise
+                logger.warning("skipped %s: %s", path.name, exc.message)
+        return ingested
 
     def delete_document(self, doc_id: str) -> int:
         removed = self.store.delete_document(doc_id)

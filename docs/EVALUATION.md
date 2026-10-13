@@ -20,7 +20,7 @@ How the system was measured, what the numbers are, and how much to trust them.
 | 18 questions on the 88-page GDPR regulation | 18 / 18 |
 | 10 generated questions on a document never used for tuning | 10 / 10 |
 | 18 questions on a filled-in form and a handwritten scan | Retrieval checked: the right passage is found for 12 of 13 answerable questions. The run with the AI model is pending (daily quota spent) |
-| 185 automated tests | 185 passed |
+| 186 automated tests | 186 passed |
 
 Every evaluation number comes from a live run: real retrieval, the real LLM, no mocks. The sets are
 small and I wrote most of them, so this shows the pipeline works as designed. It is not a benchmark.
@@ -321,11 +321,11 @@ the CLI prints the result but does not overwrite the saved one.
 ## Automated tests
 
 ```bash
-pytest          # 185 tests, under 20 seconds, no API key or network needed
+pytest          # 186 tests, under 20 seconds, no API key or network needed
 ruff check .
 ```
 
-Latest run: **185 passed, 0 failed**. The full output is recorded in
+Latest run: **186 passed, 0 failed**. The full output is recorded in
 [`tests/RESULTS.md`](../tests/RESULTS.md). The same two commands run on every push
 (`.github/workflows/ci.yml`).
 
