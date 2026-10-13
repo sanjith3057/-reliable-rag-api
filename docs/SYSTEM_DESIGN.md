@@ -424,7 +424,7 @@ What this does not do, grouped by where it would bite.
 **Evaluation**
 
 - **The bundled sets are small and I wrote them.** 98 questions. They show the pipeline works as
-  designed on two kinds of document; they are not a benchmark.
+  designed on five kinds of document (short notes, a regulation, a report, a form, a scan); they are not a benchmark.
 - **Generated sets are easier than human-written ones**, and the LLM judge is the same model that
   answered. Both are useful for testing your own documents and both flatter the system somewhat.
 - **Evaluation runs inside the request.** A full run holds the HTTP connection open for a minute or

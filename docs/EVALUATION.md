@@ -346,7 +346,7 @@ What this says:
 ## Read these numbers with care
 
 - **Small sets, written by me.** 98 questions in total. This shows the pipeline works as designed
-  on two kinds of document; it is not a benchmark.
+  on five kinds of document (short notes, a regulation, a report, a form, a scan); it is not a benchmark.
 - **The model already knows the GDPR.** A correct answer on the real set does not prove grounding
   by itself. The fictional set is what proves that. The real set shows retrieval, citation and
   refusal on long real text.
