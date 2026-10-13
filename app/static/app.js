@@ -355,6 +355,7 @@ const DATASET_NOTES = {
   test: "20 questions on the bundled fictional documents. Needs the sample docs loaded.",
   real: "18 questions on the bundled 88-page GDPR PDF. Needs the sample docs loaded.",
   forms: "18 questions on a filled-in medical intake form and a handwritten page read with OCR. Needs the sample docs loaded.",
+  report: "21 questions on a 48-page student project report, from single facts up to questions that must be refused. Needs the sample docs loaded.",
   dev: "Used for tuning, not reported. Needs the sample docs loaded.",
 };
 

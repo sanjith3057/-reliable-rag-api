@@ -15,6 +15,7 @@ from app.generation.prompt import (
     build_decompose_prompt,
     is_overview_question,
 )
+from app.generation.providers import PROVIDERS
 from app.generation.validator import (
     NOT_AVAILABLE,
     parse_answer,
@@ -27,6 +28,7 @@ from app.ingestion.chunker import chunk_pages
 from app.ingestion.hashing import doc_id_for
 from app.ingestion.loaders import SUPPORTED_EXTENSIONS, load_document
 from app.ingestion.ocr import ocr_pdf_pages
+from app.ingestion.vision import VisionTranscriber
 from app.logging import get_logger, log_event, timed
 from app.retrieval.embedder import Embedder
 from app.retrieval.reranker import Reranker
@@ -78,6 +80,24 @@ class RagService:
             max_sub_questions=settings.max_sub_questions,
         )
 
+        self.vision = self._build_vision(settings)
+
+    @staticmethod
+    def _build_vision(settings: Settings) -> VisionTranscriber | None:
+        if not settings.ocr_vision_fallback:
+            return None
+        provider = PROVIDERS.get(settings.llm_provider.lower())
+        api_key = getattr(settings, provider[3]) if provider else ""
+        if not api_key:
+            logger.warning("OCR_VISION_FALLBACK is on but the LLM provider has no API key; using local OCR only")
+            return None
+        return VisionTranscriber(provider[0], api_key, settings.ocr_vision_model, settings.llm_timeout_s)
+
+    def _ocr(self, data: bytes, page_numbers: list[int]) -> dict[int, str]:
+        return ocr_pdf_pages(
+            data, page_numbers, transcribe=self.vision, min_confidence=self.settings.ocr_min_confidence
+        )
+
     # ── Ingestion ────────────────────────────────────────────────────────────
     def ingest(self, filename: str, data: bytes) -> IngestResponse:
         doc_name = sanitize_filename(filename)
@@ -86,7 +106,7 @@ class RagService:
             data,
             self.settings.max_file_bytes,
             self.settings.max_pdf_pages,
-            ocr=ocr_pdf_pages if self.settings.enable_ocr else None,
+            ocr=self._ocr if self.settings.enable_ocr else None,
             max_ocr_pages=self.settings.max_ocr_pages,
         )
         ocr_pages = sum(page.from_ocr for page in pages)

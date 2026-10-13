@@ -2,6 +2,7 @@
   {
     "id": "f01",
     "type": "answerable",
+    "level": 1,
     "question": "What is the preferred name of the patient on the intake form?",
     "expected_answerable": true,
     "expected_sources": [
@@ -17,6 +18,7 @@
   {
     "id": "f02",
     "type": "answerable",
+    "level": 2,
     "question": "What is the patient allergic to, according to the intake form?",
     "expected_answerable": true,
     "expected_sources": [
@@ -33,6 +35,7 @@
   {
     "id": "f03",
     "type": "answerable",
+    "level": 2,
     "question": "Which medications is the patient currently taking?",
     "expected_answerable": true,
     "expected_sources": [
@@ -50,6 +53,7 @@
   {
     "id": "f04",
     "type": "answerable",
+    "level": 1,
     "question": "Who is the patient's emergency contact on the intake form?",
     "expected_answerable": true,
     "expected_sources": [
@@ -65,6 +69,7 @@
   {
     "id": "f05",
     "type": "answerable",
+    "level": 1,
     "question": "What chronic conditions does the patient report on the intake form?",
     "expected_answerable": true,
     "expected_sources": [
@@ -80,6 +85,7 @@
   {
     "id": "f06",
     "type": "answerable",
+    "level": 1,
     "question": "What is the reason for the patient's visit to Willow Creek Family Medicine?",
     "expected_answerable": true,
     "expected_sources": [
@@ -95,6 +101,7 @@
   {
     "id": "f07",
     "type": "answerable",
+    "level": 1,
     "question": "How often does the patient exercise?",
     "expected_answerable": true,
     "expected_sources": [
@@ -110,6 +117,7 @@
   {
     "id": "f08",
     "type": "answerable",
+    "level": 1,
     "question": "What is the patient's own phone number on the intake form?",
     "expected_answerable": true,
     "expected_sources": [
@@ -125,6 +133,7 @@
   {
     "id": "f09",
     "type": "multi",
+    "level": 3,
     "question": "Who is the patient's insurance provider and what is the policy number?",
     "expected_answerable": true,
     "expected_sources": [
@@ -142,6 +151,7 @@
   {
     "id": "f10",
     "type": "multi",
+    "level": 3,
     "question": "What past surgeries has the patient had, and what does the family medical history say about her mother?",
     "expected_answerable": true,
     "expected_sources": [
@@ -159,6 +169,7 @@
   {
     "id": "f11",
     "type": "unanswerable",
+    "level": 5,
     "question": "What is the patient's blood type on the intake form?",
     "expected_answerable": false,
     "expected_sources": [],
@@ -168,6 +179,7 @@
   {
     "id": "f12",
     "type": "unanswerable",
+    "level": 5,
     "question": "Which doctor examined the patient at Willow Creek Family Medicine?",
     "expected_answerable": false,
     "expected_sources": [],
@@ -177,6 +189,7 @@
   {
     "id": "f13",
     "type": "unanswerable",
+    "level": 5,
     "question": "How much is the patient's insurance co-payment for this visit?",
     "expected_answerable": false,
     "expected_sources": [],
@@ -186,6 +199,7 @@
   {
     "id": "s01",
     "type": "answerable",
+    "level": 1,
     "question": "What is the subject code written on the handwritten assignment cover page?",
     "expected_answerable": true,
     "expected_sources": [
@@ -201,6 +215,7 @@
   {
     "id": "s02",
     "type": "answerable",
+    "level": 1,
     "question": "What is the topic of the handwritten assignment?",
     "expected_answerable": true,
     "expected_sources": [
@@ -216,6 +231,7 @@
   {
     "id": "s03",
     "type": "answerable",
+    "level": 1,
     "question": "What date is written on the handwritten assignment cover page?",
     "expected_answerable": true,
     "expected_sources": [
@@ -231,6 +247,7 @@
   {
     "id": "s04",
     "type": "unanswerable",
+    "level": 5,
     "question": "How many marks were awarded for the handwritten assignment?",
     "expected_answerable": false,
     "expected_sources": [],
@@ -240,6 +257,7 @@
   {
     "id": "s05",
     "type": "unanswerable",
+    "level": 5,
     "question": "Which college issued the handwritten assignment?",
     "expected_answerable": false,
     "expected_sources": [],

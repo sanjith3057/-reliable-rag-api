@@ -127,23 +127,27 @@ There is no SQL database. Everything searchable lives in one ChromaDB collection
 
 ## Does it work?
 
-Measured with the real AI model, not a simulation. The three prepared sets were last run on
-13 Oct 2026 against all 11 bundled documents.
+Measured with the real AI model, not a simulation, on 13 Oct 2026.
 
 | Question set | What it tests | Result |
 | --- | --- | --- |
 | 20 questions on 8 made-up company documents | Answers must come from the documents, because no AI model knows these facts | 20 / 20 |
 | 18 questions on the 88-page GDPR regulation | Finding the right passage in a long, dense, real document | 18 / 18 |
 | 18 questions on a filled-in form and a handwritten scan | Documents that are not prose, and text read with OCR | 17 / 18 |
+| 21 questions on a 48-page project report, in five difficulty levels | From single facts up to questions that must be refused | 18 of 21 ran and all 18 passed; the last 3 were stopped by the provider's daily limit, so the run is not saved |
 | 10 questions written automatically from a document it had never seen | Does it work on someone else's file? | 10 / 10 |
 
-The one miss is the date on the handwritten page: it says 2024 and the OCR read 2624. These sets
-are small and I wrote most of them, and earlier runs scored lower: one question on the GDPR set
-has passed in some runs and failed in others.
+The one miss is the date on the handwritten page: it says 2024 and the OCR read 2624. The first
+three sets were run before the project report was added to the bundled documents and have not
+been re-run with it. These sets are small and I wrote most of them, and earlier runs scored lower:
+one question on the GDPR set has passed in some runs and failed in others.
+
+The same questions grouped by difficulty level and by document format (PDF, Markdown, plain text,
+form, scan) are in the [question bank](eval/QUESTION_BANK.md).
 The full numbers, the runs that went badly and what was changed are in
 [Evaluation and tests](docs/EVALUATION.md).
 
-There are also 186 automated tests. They run in under 20 seconds with no API key and no internet.
+There are also 194 automated tests. They run in about half a minute with no API key and no internet.
 
 ```bash
 pytest
@@ -189,10 +193,10 @@ app/                 the server
   pipeline.py        the steps of "add a document" and "ask a question"
   config.py          every setting
 docs/                user guide, system design, evaluation, diagrams
-eval/                question sets and recorded results
+eval/                question sets, recorded results and the question bank by level
 sample_docs/         8 made-up company documents to try it with
-real_docs/           the 88-page GDPR regulation, a filled-in form and a handwritten scan
-tests/               186 automated tests and their recorded results
+real_docs/           the 88-page GDPR regulation, a 48-page project report, a form and a handwritten scan
+tests/               194 automated tests and their recorded results
 Dockerfile, docker-compose.yml
 ```
 
@@ -206,10 +210,10 @@ Dockerfile, docker-compose.yml
 | Evidence: document names and excerpts | `sources` on every answer: document, page, excerpt, score |
 | Say clearly when the information is unavailable | The gate and the answer checker (`app/generation/validator.py`) |
 | API in FastAPI | `app/api/routes.py`, interactive docs at `/docs` |
-| At least 10 evaluation questions of three kinds | 77 questions in `eval/`: answerable, unanswerable, multi-evidence, distractor |
+| At least 10 evaluation questions of three kinds | 98 questions in `eval/`: answerable, unanswerable, multi-evidence, distractor |
 | Clean, modular Python | One package per stage; models sit behind interfaces |
 | Environment variables for keys and config | `app/config.py`, `.env.example` |
-| Tests for retrieval, API behaviour, failure cases | `tests/` (186 tests), results in [`tests/RESULTS.md`](tests/RESULTS.md) |
+| Tests for retrieval, API behaviour, failure cases | `tests/` (194 tests), results in [`tests/RESULTS.md`](tests/RESULTS.md) |
 | Docker support and setup documentation | `Dockerfile`, `docker-compose.yml`, "Run it" above |
 | Existing LLM API, no training from scratch | Groq, OpenAI or Gemini; the embedding model is pretrained |
 | Sample documents and evaluation questions | `sample_docs/`, `real_docs/`, `eval/questions_*.json` |
@@ -218,10 +222,17 @@ Dockerfile, docker-compose.yml
 
 ## Limitations
 
-- **Handwriting is read badly.** Scanned pages are read with OCR. Clean printed scans read well.
-  Handwriting and skewed photos do not: on the bundled handwritten page it read "Data Engineering"
-  as "Dota Engineguing" and the year 2024 as 2624. The answer then repeats the misread text,
-  because it is faithful to what was read.
+- **Handwriting is read badly by default.** Scanned pages are read with a local OCR model. Clean
+  printed scans read well. Handwriting and skewed photos do not: on the bundled handwritten page it
+  read "Data Engineering" as "Dota Engineguing" and the year 2024 as 2624, and the answer repeats
+  the misread text. Setting `OCR_VISION_FALLBACK=true` sends such pages to an AI model that reads
+  images. In one test by hand that model read every line of the page correctly, and also wrote a
+  score for a scribble nobody could read. It is off by default because the page image leaves your
+  machine.
+- **A question that repeats a document's title can miss.** Asking "Which GPU was used for the
+  offensive language detection project?" brought back the title page and the certificate, which
+  repeat those words, and not the hardware page. "Which GPU was used to fine-tune Distil-BERT?"
+  found it.
 - **A scan is limited to 25 pages** and takes a few seconds a page.
 - **English only.**
 - **Summaries work, but a summary of a long document can miss details.** "Summarise this document"
@@ -251,9 +262,10 @@ Not built yet, in the order I would do them:
   source of facts that has no citation.
 - **Summaries that read every page**, by summarising a long document section by section.
 - **Smarter splitting** that keeps a table whole and carries the section heading into each piece.
-- **Better reading of handwriting.** One of the three AI models already in use can read images.
-  When the local OCR is unsure of a page, that page could be sent to it for transcription. Left
-  out for now because the page image would leave your machine and a model can invent a word.
+- **Trust in the second reading of handwriting.** The optional vision fallback has been tried on
+  one page. It needs a question set of its own, and a check that flags words the two readings
+  disagree on.
+- **Search that is not pulled towards title pages** when a question names the document.
 - **Separate libraries per user**, with accounts in place of shared keys.
 - **A larger question set written by someone else**, scored by an independent judge model.
 

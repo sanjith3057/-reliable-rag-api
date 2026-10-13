@@ -34,9 +34,10 @@ kept only until you close the browser tab.
 | PDFs with real text | 500 pages per PDF |
 | Scanned PDFs (photos of pages) | 25 pages per PDF; read with OCR, a few seconds a page |
 
-**The samples.** Click **Load sample docs** to add 11 demo documents: 8 short documents from a
-made-up company called Lumenfold, the 88-page GDPR regulation, a filled-in medical intake form
-(fictional) and one handwritten page that is read with OCR. This takes about a minute.
+**The samples.** Click **Load sample docs** to add 12 demo documents: 8 short documents from a
+made-up company called Lumenfold, the 88-page GDPR regulation, a 48-page student project report,
+a filled-in medical intake form (fictional) and one handwritten page that is read with OCR. This
+takes about a minute.
 
 Each document appears in the library with the number of pieces ("chunks") it was split into.
 
@@ -123,9 +124,10 @@ Open the **Evaluate** tab, choose a question set, and click **Run evaluation**.
 | **Test set** | Run the 20 prepared questions about the sample company documents |
 | **Real set** | Run the 18 prepared questions about the GDPR regulation |
 | **Forms set** | Run the 18 prepared questions about the filled-in form and the handwritten page |
+| **Report set** | Run the 21 prepared questions about the project report, from easy to must-refuse |
 | **Dev set** | The questions used while tuning. Not a fair test. |
 
-The Test, Real, Forms and Dev sets need the sample documents, so click **Load sample docs** first.
+The Test, Real, Forms, Report and Dev sets need the sample documents, so click **Load sample docs** first.
 
 Tick **Also grade each answer with an LLM judge** to have a second AI pass check each answer.
 It costs extra quota.

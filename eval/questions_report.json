@@ -1,0 +1,336 @@
+[
+  {
+    "id": "p01",
+    "type": "answerable",
+    "level": 1,
+    "question": "Which language model does the offensive language detection project fine-tune?",
+    "expected_answerable": true,
+    "expected_sources": [
+      "project_report_offensive_language.pdf"
+    ],
+    "expected_keywords": [
+      "distil"
+    ],
+    "expected_evidence": [
+      "Distil-BERT"
+    ]
+  },
+  {
+    "id": "p02",
+    "type": "answerable",
+    "level": 1,
+    "question": "Which GPU was used to fine-tune the Distil-BERT model?",
+    "expected_answerable": true,
+    "expected_sources": [
+      "project_report_offensive_language.pdf"
+    ],
+    "expected_keywords": [
+      "RTX 2050"
+    ],
+    "expected_evidence": [
+      "NVIDIA RTX 2050"
+    ]
+  },
+  {
+    "id": "p03",
+    "type": "answerable",
+    "level": 1,
+    "question": "Who guided the offensive language detection project?",
+    "expected_answerable": true,
+    "expected_sources": [
+      "project_report_offensive_language.pdf"
+    ],
+    "expected_keywords": [
+      "Praneesh"
+    ],
+    "expected_evidence": [
+      "Dr. M. Praneesh"
+    ]
+  },
+  {
+    "id": "p04",
+    "type": "answerable",
+    "level": 1,
+    "question": "On what date was the viva-voce examination for the offensive language detection project held?",
+    "expected_answerable": true,
+    "expected_sources": [
+      "project_report_offensive_language.pdf"
+    ],
+    "expected_keywords": [
+      "20-03-2025"
+    ],
+    "expected_evidence": [
+      "20-03-2025"
+    ]
+  },
+  {
+    "id": "p05",
+    "type": "answerable",
+    "level": 1,
+    "question": "What is the maximum input length, in tokens, that the offensive language detection system accepts?",
+    "expected_answerable": true,
+    "expected_sources": [
+      "project_report_offensive_language.pdf"
+    ],
+    "expected_keywords": [
+      "128"
+    ],
+    "expected_evidence": [
+      "128 tokens"
+    ]
+  },
+  {
+    "id": "p06",
+    "type": "answerable",
+    "level": 2,
+    "question": "Into which four categories does the offensive language detection system classify text?",
+    "expected_answerable": true,
+    "expected_sources": [
+      "project_report_offensive_language.pdf"
+    ],
+    "expected_keywords": [
+      "Clean",
+      "Explicit",
+      "Hate Speech",
+      "Cyberbullying"
+    ],
+    "expected_evidence": [
+      "Clean, Explicit, Hate Speech, and Cyberbullying"
+    ]
+  },
+  {
+    "id": "p07",
+    "type": "answerable",
+    "level": 2,
+    "question": "Which framework and libraries are used to build and deploy the Distil-BERT content detection system?",
+    "expected_answerable": true,
+    "expected_sources": [
+      "project_report_offensive_language.pdf"
+    ],
+    "expected_keywords": [
+      "PyTorch",
+      "Transformers",
+      "gradio",
+      "flask"
+    ],
+    "expected_evidence": [
+      "The core framework is PyTorch"
+    ]
+  },
+  {
+    "id": "p08",
+    "type": "answerable",
+    "level": 2,
+    "question": "How much RAM and how much storage does the hardware specification for fine-tuning Distil-BERT call for?",
+    "expected_answerable": true,
+    "expected_sources": [
+      "project_report_offensive_language.pdf"
+    ],
+    "expected_keywords": [
+      "16",
+      "500"
+    ],
+    "expected_evidence": [
+      "at least 16GB of RAM"
+    ]
+  },
+  {
+    "id": "p09",
+    "type": "answerable",
+    "level": 2,
+    "question": "Which evaluation metrics are used to test the offensive language detection system?",
+    "expected_answerable": true,
+    "expected_sources": [
+      "project_report_offensive_language.pdf"
+    ],
+    "expected_keywords": [
+      "accuracy",
+      "precision",
+      "recall",
+      "F1"
+    ],
+    "expected_evidence": [
+      "accuracy, precision, recall, and F1-score"
+    ]
+  },
+  {
+    "id": "p10",
+    "type": "answerable",
+    "level": 2,
+    "question": "Which two interfaces does the offensive language detection system offer, and who is each one for?",
+    "expected_answerable": true,
+    "expected_sources": [
+      "project_report_offensive_language.pdf"
+    ],
+    "expected_keywords": [
+      "Gradio",
+      "Flask"
+    ],
+    "expected_evidence": [
+      "a Gradio UI for users and a Flask"
+    ]
+  },
+  {
+    "id": "p11",
+    "type": "multi",
+    "level": 3,
+    "question": "How does the offensive language detection system support languages other than English, and which external APIs does it use?",
+    "expected_answerable": true,
+    "expected_sources": [
+      "project_report_offensive_language.pdf"
+    ],
+    "expected_keywords": [
+      "translat",
+      "Gemini"
+    ],
+    "expected_evidence": [
+      "translation to English",
+      "Gemini API"
+    ]
+  },
+  {
+    "id": "p12",
+    "type": "multi",
+    "level": 3,
+    "question": "What limitations does the conclusion of the offensive language detection project name, and what multimedia support is proposed as future development?",
+    "expected_answerable": true,
+    "expected_sources": [
+      "project_report_offensive_language.pdf"
+    ],
+    "expected_keywords": [
+      "scalab",
+      "image"
+    ],
+    "expected_evidence": [
+      "focus and scalability constraints",
+      "image and video analysis"
+    ]
+  },
+  {
+    "id": "p13",
+    "type": "multi",
+    "level": 3,
+    "question": "What do existing offensive language detection systems struggle with, and what does the proposed system combine to handle implicit content?",
+    "expected_answerable": true,
+    "expected_sources": [
+      "project_report_offensive_language.pdf"
+    ],
+    "expected_keywords": [
+      "sarcasm",
+      "deep learning"
+    ],
+    "expected_evidence": [
+      "struggling with sarcasm",
+      "detection with deep learning"
+    ]
+  },
+  {
+    "id": "p14",
+    "type": "multi",
+    "level": 4,
+    "question": "What batch size does the report recommend for training on the RTX 2050, and what batch size is set in the source code of the offensive language detection project?",
+    "expected_answerable": true,
+    "expected_sources": [
+      "project_report_offensive_language.pdf"
+    ],
+    "expected_keywords": [
+      "16",
+      "32"
+    ],
+    "expected_evidence": [
+      "batch size of 16 or lower",
+      "BATCH_SIZE: int = 32"
+    ]
+  },
+  {
+    "id": "p15",
+    "type": "multi",
+    "level": 4,
+    "question": "On which port does the Flask API of the offensive language detection project run, and on which port is the Gradio interface launched?",
+    "expected_answerable": true,
+    "expected_sources": [
+      "project_report_offensive_language.pdf"
+    ],
+    "expected_keywords": [
+      "5000",
+      "7860"
+    ],
+    "expected_evidence": [
+      "port=5000",
+      "server_port=7860"
+    ]
+  },
+  {
+    "id": "p16",
+    "type": "answerable",
+    "level": 4,
+    "question": "What label and what confidence did the content detection system give the Hindi complaint about a useless service?",
+    "expected_answerable": true,
+    "expected_sources": [
+      "project_report_offensive_language.pdf"
+    ],
+    "expected_keywords": [
+      "Hate Speech",
+      "97.99"
+    ],
+    "expected_evidence": [
+      "97.99% confidence"
+    ]
+  },
+  {
+    "id": "p17",
+    "type": "answerable",
+    "level": 4,
+    "question": "How many training epochs does the configuration in the source code of the offensive language detection project specify?",
+    "expected_answerable": true,
+    "expected_sources": [
+      "project_report_offensive_language.pdf"
+    ],
+    "expected_keywords": [
+      "5"
+    ],
+    "expected_evidence": [
+      "EPOCHS: int = 5"
+    ]
+  },
+  {
+    "id": "p18",
+    "type": "unanswerable",
+    "level": 5,
+    "question": "What overall accuracy percentage did the offensive language detection model achieve on its test set?",
+    "expected_answerable": false,
+    "expected_sources": [],
+    "expected_keywords": [],
+    "expected_evidence": []
+  },
+  {
+    "id": "p19",
+    "type": "unanswerable",
+    "level": 5,
+    "question": "How many hours did it take to train the offensive language detection model?",
+    "expected_answerable": false,
+    "expected_sources": [],
+    "expected_keywords": [],
+    "expected_evidence": []
+  },
+  {
+    "id": "p20",
+    "type": "unanswerable",
+    "level": 5,
+    "question": "What grade was awarded for the offensive language detection project report?",
+    "expected_answerable": false,
+    "expected_sources": [],
+    "expected_keywords": [],
+    "expected_evidence": []
+  },
+  {
+    "id": "p21",
+    "type": "unanswerable",
+    "level": 5,
+    "question": "How many text samples from Twitter are in the dataset of the offensive language detection project?",
+    "expected_answerable": false,
+    "expected_sources": [],
+    "expected_keywords": [],
+    "expected_evidence": []
+  }
+]

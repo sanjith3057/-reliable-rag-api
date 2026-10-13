@@ -3,6 +3,7 @@
 python eval/run_eval.py                  # end-to-end eval on the test set, writes eval/results.md
 python eval/run_eval.py --dataset real   # end-to-end eval on the real-document set
 python eval/run_eval.py --dataset forms  # end-to-end eval on a filled-in form and a handwritten scan
+python eval/run_eval.py --dataset report # end-to-end eval on a 48-page project report, by difficulty level
 python eval/run_eval.py --retrieval      # retrieval and fusion eval: BM25 vs dense vs hybrid vs reranked (no LLM)
 python eval/run_eval.py --tune           # gate threshold sweep on the dev set (no LLM)
 """
@@ -39,7 +40,7 @@ def make_service(**overrides):
     )
     service = build_service(settings)
     # One mixed corpus for every question set: 8 short fictional documents, an 88-page real PDF,
-    # a filled-in form and a handwritten scan.
+    # a 48-page project report, a filled-in form and a handwritten scan.
     service.ingest_directory(settings.sample_docs_dir)
     service.ingest_directory(str(ROOT / "real_docs"))
     return service
@@ -178,7 +179,7 @@ def retrieval_eval() -> str:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--dataset", choices=["test", "real", "forms", "dev"], default="test")
+    parser.add_argument("--dataset", choices=["test", "real", "forms", "report", "dev"], default="test")
     parser.add_argument("--retrieval", action="store_true", help="retrieval and fusion evaluation (no LLM calls)")
     parser.add_argument("--tune", action="store_true", help="threshold sweep on the dev set (no LLM calls)")
     args = parser.parse_args()

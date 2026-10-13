@@ -20,7 +20,8 @@ How the system was measured, what the numbers are, and how much to trust them.
 | 18 questions on the 88-page GDPR regulation | 18 / 18 |
 | 10 generated questions on a document never used for tuning | 10 / 10 |
 | 18 questions on a filled-in form and a handwritten scan | 17 / 18; the miss is a handwritten date the OCR misread |
-| 186 automated tests | 186 passed |
+| 21 questions on a 48-page project report | 18 of 21 ran and all 18 passed; the last 3 were stopped by the provider's daily limit, so the run is not saved |
+| 194 automated tests | 194 passed |
 
 Every evaluation number comes from a live run: real retrieval, the real LLM, no mocks. The sets are
 small and I wrote most of them, so this shows the pipeline works as designed. It is not a benchmark.
@@ -32,14 +33,19 @@ There are two kinds of check in this project, and they answer different question
 | Question | Are the answers good? | Does the code do what it should? |
 | Uses the real LLM | Yes | No, a scripted fake |
 | Needs a key and quota | Yes | No |
-| Time | Minutes | Under 20 seconds |
+| Time | Minutes | About half a minute |
 | Run with | `python eval/run_eval.py` or the Evaluate tab | `pytest` |
 
 ## The question sets
 
-All sets run against one mixed corpus of 588 chunks from 11 documents: the 8 short fictional
-documents, an 88-page real PDF (the GDPR regulation), a filled-in medical intake form (fictional)
-and a handwritten page read with OCR. The last three are in `real_docs/`.
+All sets run against one mixed corpus of 684 chunks from 12 documents: the 8 short fictional
+documents, an 88-page real PDF (the GDPR regulation), a 48-page student project report, a filled-in
+medical intake form (fictional) and a handwritten page read with OCR. The last four are in
+`real_docs/`.
+
+The test, real and forms results below were measured when the corpus was 588 chunks from 11
+documents, before the project report was added. They have not been re-run on the larger corpus:
+the daily quota was spent.
 
 | Set | Questions | Written against | Purpose |
 | --- | --- | --- | --- |
@@ -47,6 +53,19 @@ and a handwritten page read with OCR. The last three are in `real_docs/`.
 | `questions_test.json` | 20 | Fictional documents | Grounding: the model cannot know these facts from training |
 | `questions_real.json` | 18 | The GDPR PDF | Retrieval and abstention on long, dense, real text |
 | `questions_forms.json` | 18 | A filled-in form and a handwritten scan | Documents that are not prose: label and value pairs, and text read with OCR |
+| `questions_report.json` | 21 | A 48-page project report | Five difficulty levels on one long document someone else might upload |
+
+Every reported question also carries a level from 1 to 5, and
+[`eval/QUESTION_BANK.md`](../eval/QUESTION_BANK.md) lists them by level and by document format
+with the pass mark from the last saved run.
+
+| Level | Kind of question |
+| --- | --- |
+| 1 | One fact stated in one place |
+| 2 | A list or several facts from one passage |
+| 3 | Facts from different passages or documents |
+| 4 | A similar but wrong value sits close by |
+| 5 | Must be refused |
 
 Four kinds of question are used:
 
@@ -65,7 +84,7 @@ questions.
 ## Results
 
 All three runs: 13 Oct 2026, `bge-small-en-v1.5`, reranker on, top-k 5, gate 0.40, neighbouring
-chunks on, the longer-answer prompt, on the full 588-chunk corpus. The test and real sets ran on
+chunks on, the longer-answer prompt, on the 588-chunk corpus of that morning. The test and real sets ran on
 Groq `openai/gpt-oss-120b`, the default model. By the time the forms set ran, that model's daily
 quota was spent, so it ran on the first fallback, `openai/gpt-oss-20b`.
 
@@ -132,6 +151,37 @@ because the OCR happened to read "22CDA602" and "Data Science" correctly.
 
 Earlier spot checks on the form are described in step 8 of the history below. In one of them the
 weakest model gave the wrong phone number for the patient; that question (f08) is in the set.
+
+## The report set: one long document, five levels
+
+Added on 13 Oct 2026. The document is a 48-page undergraduate project report (96 chunks): chapters,
+a table of contents, a bibliography, source code, and example text in Hindi, French and Tamil. 21
+questions: 5 at level 1, 5 at level 2, 3 at level 3, 4 at level 4 and 4 at level 5.
+
+**Status: one partial run, not saved.** On `qwen/qwen3.8-27b`, the last model in the chain, with
+the other two out of quota:
+
+| Level | Questions | Ran | Passed |
+| --- | --- | --- | --- |
+| 1. One fact | 5 | 5 | 5 |
+| 2. Several facts, one passage | 5 | 5 | 5 |
+| 3. Facts from different places | 3 | 3 | 3 |
+| 4. A near-miss sits close by | 4 | 4 | 4 |
+| 5. Must be refused | 4 | 1 | 1 |
+
+The last three questions, all level 5, returned `LLM_RATE_LIMITED`. Whether the system refuses
+them is not known. Because the run has provider errors it was not written to
+`eval/results_report.md`, and the question bank shows this set as not run. Run
+`python eval/run_eval.py --dataset report` to complete it.
+
+**The questions were reworded once, before any run with the AI model.** In the first draft every
+question named "the offensive language detection project". A retrieval check without the AI model
+showed 4 of 17 answerable questions had lost their passage: dense search had it in the top 10, and
+the reranker ranked the title page, certificate and declaration above it because they repeat that
+phrase. Those four were reworded the way a reader would ask (for example "Which GPU was used to
+fine-tune the Distil-BERT model?"), after which all 17 passages were found. That is a change made
+after seeing a result, so the set is not a blind test, and the weakness it exposed is real: it is
+listed under [limitations](SYSTEM_DESIGN.md#limitations).
 
 ## Evaluate on your own documents
 
@@ -236,13 +286,18 @@ The last two rows are failures that remain. Both are listed under
     form and a handwritten page were added to the corpus with 18 questions. The first complete run
     of all three sets on the 11 documents: 20 / 20, 18 / 18 and 17 / 18.
 
+12. **A long report, levels, and an optional second reader.** A 48-page project report joined the
+    corpus with 21 questions in five levels, every reported question got a level, and a vision
+    model can now be switched on to re-read pages the local OCR is unsure of. The report set has
+    one partial run: 18 of 18 passed before the quota ran out.
+
 Steps 2 to 10 used information from outside the dev set, including the earlier real-set runs, so the
 real-set score is not a clean held-out number. No change was made to target r12 specifically.
 
 ## Retrieval and fusion evaluation (no LLM)
 
 Retrieval measured on its own, so a good or bad LLM cannot hide it. A chunk is relevant if it
-contains the gold evidence text for the question. 588 chunks, 13 questions per set. Full output,
+contains the gold evidence text for the question. 684 chunks, 13 questions per set. Full output,
 including nDCG@10, is in [`eval/retrieval_eval.md`](../eval/retrieval_eval.md).
 
 | Term | Meaning |
@@ -258,13 +313,13 @@ Real document (GDPR):
 
 | Retrieval | Recall@3 | Recall@5 | Recall@10 | MRR | nDCG@5 | Mean latency | P95 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| BM25 only | 0.54 | 0.54 | 0.54 | 0.49 | 0.48 | 3 ms | 6 ms |
-| Dense only | 0.81 | 0.96 | 1.00 | 0.80 | 0.82 | 42 ms | 60 ms |
-| Hybrid (BM25 + dense) | 0.81 | 0.81 | 0.96 | 0.79 | 0.76 | 57 ms | 94 ms |
-| **Dense + reranker (default)** | 0.88 | 0.96 | 1.00 | 0.78 | 0.80 | 661 ms | 1325 ms |
-| Hybrid + reranker | 0.88 | 0.96 | 0.96 | 0.78 | 0.80 | 952 ms | 1468 ms |
+| BM25 only | 0.54 | 0.54 | 0.54 | 0.50 | 0.48 | 3 ms | 5 ms |
+| Dense only | 0.81 | 0.96 | 1.00 | 0.80 | 0.82 | 56 ms | 73 ms |
+| Hybrid (BM25 + dense) | 0.81 | 0.81 | 0.96 | 0.79 | 0.76 | 62 ms | 82 ms |
+| **Dense + reranker (default)** | 0.88 | 0.96 | 1.00 | 0.78 | 0.80 | 1259 ms | 1934 ms |
+| Hybrid + reranker | 0.88 | 0.96 | 0.96 | 0.78 | 0.80 | 1932 ms | 2756 ms |
 
-On the fictional documents every method reaches Recall@5 of 1.00 and an MRR of 0.94 to 0.96, so
+On the fictional documents every method reaches Recall@5 of 1.00 and an MRR of 0.94 to 1.00, so
 that set cannot tell them apart.
 
 Complementarity, judged on full recall in the top 5: on the GDPR set both methods found the
@@ -278,16 +333,16 @@ What this says:
   exact-token questions (error codes, IDs, function names), which is where BM25 should win, so this
   is a result about these questions, not about hybrid search in general.
 - **The reranker's gain on these sets is small**: Recall@3 rises from 0.81 to 0.88, Recall@5 is
-  unchanged, and MRR dips from 0.80 to 0.78. It costs about 0.7 s per question on CPU.
+  unchanged, and MRR dips from 0.80 to 0.78. It costs 0.7 to 1.3 s per question on CPU, depending on the run.
 - **Why it is still on.** On a private markdown document with tables (10 questions, measured by
   hand) dense search put the evidence in the top 5 for 6 questions and the reranker for all 10, and
   on the dev set it took 12 of 13 to 13 of 13. That is weaker evidence than the table above,
   because I cannot publish that document. On the published sets alone, dense-only would be a
-  defensible default and 0.7 s faster; `ENABLE_RERANKER=false` gives that.
+  defensible default and about a second faster; `ENABLE_RERANKER=false` gives that.
 
 ## Read these numbers with care
 
-- **Small sets, written by me.** 77 questions in total. This shows the pipeline works as designed
+- **Small sets, written by me.** 98 questions in total. This shows the pipeline works as designed
   on two kinds of document; it is not a benchmark.
 - **The model already knows the GDPR.** A correct answer on the real set does not prove grounding
   by itself. The fictional set is what proves that. The real set shows retrieval, citation and
@@ -308,6 +363,8 @@ What this says:
 python eval/run_eval.py                   # test set, writes eval/results.md
 python eval/run_eval.py --dataset real    # real set, writes eval/results_real.md
 python eval/run_eval.py --dataset forms   # forms set, writes eval/results_forms.md
+python eval/run_eval.py --dataset report  # report set, writes eval/results_report.md
+python eval/question_bank.py              # regroup the saved results by level and format (no LLM calls)
 python eval/run_eval.py --tune            # gate threshold sweep on the dev set (no LLM calls)
 python eval/run_eval.py --retrieval       # retrieval and fusion evaluation (no LLM calls)
 ```
@@ -320,11 +377,11 @@ the CLI prints the result but does not overwrite the saved one.
 ## Automated tests
 
 ```bash
-pytest          # 186 tests, under 20 seconds, no API key or network needed
+pytest          # 194 tests, about half a minute, no API key or network needed
 ruff check .
 ```
 
-Latest run: **186 passed, 0 failed**. The full output is recorded in
+Latest run: **194 passed, 0 failed**. The full output is recorded in
 [`tests/RESULTS.md`](../tests/RESULTS.md). The same two commands run on every push
 (`.github/workflows/ci.yml`).
 

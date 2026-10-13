@@ -60,6 +60,9 @@ class EvalQuestion(BaseModel):
     id: str
     question: str
     type: str = "answerable"  # answerable | multi | unanswerable | distractor
+    # Difficulty, used only to group results: 1 one fact, 2 several facts from one passage,
+    # 3 facts from different places, 4 a near-miss sits close by, 5 must be refused.
+    level: int | None = Field(default=None, ge=1, le=5)
     expected_answerable: bool
     expected_sources: list[str] = []
     expected_keywords: list[str] = []  # "a||b" means either a or b
@@ -69,7 +72,7 @@ class EvalQuestion(BaseModel):
 
 class EvalRequest(BaseModel):
     questions: list[EvalQuestion] | None = None
-    dataset: str = Field(default="test", pattern="^(test|dev|real|forms)$")
+    dataset: str = Field(default="test", pattern="^(test|dev|real|forms|report)$")
     top_k: int | None = Field(default=None, ge=1, le=20)
     judge: bool = Field(default=False, description="Also grade each answer with an LLM judge (one extra call each)")
 

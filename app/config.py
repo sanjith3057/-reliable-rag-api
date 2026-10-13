@@ -73,6 +73,12 @@ class Settings(BaseSettings):
     # on a CPU, hence the separate, lower page limit.
     enable_ocr: bool = True
     max_ocr_pages: int = 25
+    # Optional second reading for pages the local OCR is unsure of, such as handwriting: the page
+    # image is sent to a vision model at the LLM provider. Off by default, because the image then
+    # leaves the machine and a model that transcribes can also invent a word.
+    ocr_vision_fallback: bool = False
+    ocr_vision_model: str = "qwen/qwen3.8-27b"  # must accept images; this one is on Groq
+    ocr_min_confidence: float = 0.85  # pages scoring below this get the second reading
     max_question_chars: int = 1000
     max_eval_questions: int = 50
     max_json_kb: int = 256  # request body cap for everything that is not a file upload

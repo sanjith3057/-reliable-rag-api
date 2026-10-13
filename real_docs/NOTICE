@@ -27,3 +27,13 @@ this project (it is their own coursework). It has no text layer, so it is read w
 misreads parts of it. It is here to show what the system does with a hard scan, not a clean one.
 
 `eval/questions_forms.json` is written against these two.
+
+## A project report
+
+`project_report_offensive_language.pdf` is a 48-page undergraduate project report, "Offensive
+Language Detection Using Large Language Models (LLM)", written by the author of this project and
+included with their consent. It is a typed PDF with chapters, a table of contents, a bibliography,
+source code and passages in Hindi, French and Tamil. As source material for a study of content
+moderation it quotes a few offensive example sentences.
+
+`eval/questions_report.json` is written against it, in five difficulty levels.

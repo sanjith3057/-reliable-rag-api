@@ -1,6 +1,6 @@
 # Retrieval and fusion evaluation
 
-Corpus: 588 chunks from 11 documents. No LLM is called.
+Corpus: 684 chunks from 12 documents. No LLM is called.
 A chunk counts as relevant if it contains the gold evidence text for the question.
 
 - **Recall@K**: share of the gold evidence found in the top K chunks (a two-fact question needs both).
@@ -11,9 +11,9 @@ A chunk counts as relevant if it contains the gold evidence text for the questio
 
 | Retrieval | Recall@3 | Recall@5 | Recall@10 | MRR | nDCG@5 | nDCG@10 |
 | --- | --- | --- | --- | --- | --- | --- |
-| BM25 only | 1.00 | 1.00 | 1.00 | 0.96 | 0.97 | 0.97 |
+| BM25 only | 1.00 | 1.00 | 1.00 | 1.00 | 1.00 | 1.00 |
 | Dense only | 0.92 | 1.00 | 1.00 | 0.94 | 0.95 | 0.95 |
-| Hybrid (BM25 + dense) | 0.92 | 1.00 | 1.00 | 0.94 | 0.96 | 0.96 |
+| Hybrid (BM25 + dense) | 1.00 | 1.00 | 1.00 | 0.96 | 0.97 | 0.97 |
 | Dense + reranker (default) | 0.92 | 1.00 | 1.00 | 0.94 | 0.96 | 0.96 |
 | Hybrid + reranker | 0.92 | 1.00 | 1.00 | 0.94 | 0.96 | 0.96 |
 
@@ -21,7 +21,7 @@ A chunk counts as relevant if it contains the gold evidence text for the questio
 
 | Retrieval | Recall@3 | Recall@5 | Recall@10 | MRR | nDCG@5 | nDCG@10 |
 | --- | --- | --- | --- | --- | --- | --- |
-| BM25 only | 0.54 | 0.54 | 0.54 | 0.49 | 0.48 | 0.48 |
+| BM25 only | 0.54 | 0.54 | 0.54 | 0.50 | 0.48 | 0.48 |
 | Dense only | 0.81 | 0.96 | 1.00 | 0.80 | 0.82 | 0.83 |
 | Hybrid (BM25 + dense) | 0.81 | 0.81 | 0.96 | 0.79 | 0.76 | 0.81 |
 | Dense + reranker (default) | 0.88 | 0.96 | 1.00 | 0.78 | 0.80 | 0.82 |
@@ -38,8 +38,8 @@ A chunk counts as relevant if it contains the gold evidence text for the questio
 
 | Retrieval | Mean | P95 |
 | --- | --- | --- |
-| BM25 only | 3 ms | 6 ms |
-| Dense only | 42 ms | 60 ms |
-| Hybrid (BM25 + dense) | 57 ms | 94 ms |
-| Dense + reranker (default) | 661 ms | 1325 ms |
-| Hybrid + reranker | 952 ms | 1468 ms |
+| BM25 only | 3 ms | 5 ms |
+| Dense only | 56 ms | 73 ms |
+| Hybrid (BM25 + dense) | 62 ms | 82 ms |
+| Dense + reranker (default) | 1259 ms | 1934 ms |
+| Hybrid + reranker | 1932 ms | 2756 ms |

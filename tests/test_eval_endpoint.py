@@ -258,7 +258,7 @@ def test_summary_and_markdown_render():
     assert "| x | distractor | yes |" in markdown
 
 
-@pytest.mark.parametrize("dataset", ["dev", "test", "real", "forms"])
+@pytest.mark.parametrize("dataset", ["dev", "test", "real", "forms", "report"])
 def test_every_question_set_loads_and_names_only_bundled_documents(dataset):
     bundled = {path.name for folder in (SAMPLE_DOCS, ROOT / "real_docs") for path in folder.iterdir()}
 
@@ -267,3 +267,18 @@ def test_every_question_set_loads_and_names_only_bundled_documents(dataset):
     assert questions
     assert len({question.id for question in questions}) == len(questions)
     assert {name for question in questions for name in question.expected_sources} <= bundled
+
+
+def test_question_bank_covers_every_reported_question_with_a_level():
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("question_bank", ROOT / "eval" / "question_bank.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    reported = sum(len(load_questions(str(ROOT / "eval"), name)) for name in module.SETS)
+    text = module.build()
+
+    assert f"| | **All** | | {reported} |" in text
+    for name in module.SETS:
+        assert all(question.level in module.LEVELS for question in load_questions(str(ROOT / "eval"), name))

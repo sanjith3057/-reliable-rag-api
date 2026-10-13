@@ -72,6 +72,7 @@ This runs inside the Read step, once per PDF, and only for pages whose text laye
 | Render | `pypdfium2` draws the page at twice its size (144 dpi) into memory. Nothing is written to disk. |
 | Recognise | RapidOCR (PP-OCR models on ONNX Runtime, CPU) returns a box, a text and a confidence for each line it finds. |
 | Order | Boxes whose tops are within half a line height are joined into one line, left to right; lines are ordered top to bottom. |
+| Second reading (optional) | Only with `OCR_VISION_FALLBACK=true`. Each page gets a confidence: the score of its weakest quarter of lines, because printed headers read at close to 1.0 and would hide a handwritten body in an average. A page under `OCR_MIN_CONFIDENCE` (0.85) is sent as a JPEG to a vision model at the LLM provider with the instruction to transcribe and not correct. If the reply starts the page over, it is cut at the repeat. If the call fails, the local text is kept. |
 | Hand over | The page text is marked `from_ocr` and continues through Split, Embed and Store. The upload response reports `ocr_pages`. |
 
 If the OCR packages cannot load, a scanned PDF gets `OCR_UNAVAILABLE` and typed PDFs are unaffected.
@@ -241,6 +242,8 @@ The most useful ones:
 | `RATE_LIMIT_ASK_PER_MIN` | 30 | Also `_INGEST_` 20, `_EVAL_` 3, `_DEFAULT_` 120 |
 | `MAX_FILE_MB` / `MAX_PDF_PAGES` | 10 / 500 | Upload limits |
 | `ENABLE_OCR` / `MAX_OCR_PAGES` | true / 25 | Read scanned PDF pages with OCR, and how many per file |
+| `OCR_VISION_FALLBACK` | false | Send a page the local OCR is unsure of to a vision model. The page image leaves the machine |
+| `OCR_VISION_MODEL` / `OCR_MIN_CONFIDENCE` | `qwen/qwen3.8-27b` / 0.85 | Which model reads the page, and below which page confidence it is asked |
 
 ## Security
 
@@ -293,7 +296,7 @@ the best 5 are kept. This was off in my first version because it made no differe
 documents. On a real markdown document with tables it was the difference between finding the right
 passage for 6 of 10 questions and 10 of 10. On the published sets its gain is small (see the
 [retrieval evaluation](EVALUATION.md#retrieval-and-fusion-evaluation-no-llm)), and it adds about
-0.7 s per question on CPU, so this default is a judgement call.
+0.7 to 1.3 s per question on CPU, so this default is a judgement call.
 
 **A validator after the LLM.** The model must return JSON with the source ids it used. Citations
 that do not match a retrieved passage are dropped, as are citations to passages the model itself
@@ -403,9 +406,16 @@ Tesseract needs a separate program on Windows.
 | Docker image | About 220 MB for the two system libraries OpenCV needs, plus the Python packages |
 | Typed PDFs | No cost: the OCR model is only loaded when a page has no text |
 
-Sending hard pages to a vision LLM would read handwriting far better. It was left out: the page
-image would leave the machine, it spends quota at upload time, and a model that transcribes can
-also invent, which is the failure this project exists to prevent.
+**A vision model as an optional second reader.** The local model cannot read handwriting: on the
+bundled page it scored 0.80 on the page confidence described above and misread most lines. A
+vision LLM reads it far better. In one test by hand, `qwen/qwen3.8-27b` transcribed every line of
+that page correctly in under a second, for about 2,200 tokens. The same reply also contained
+"33 / 33" for a scribble that cannot be read, and then started the page again in fragments.
+
+So it is built as a fallback that is off by default (`OCR_VISION_FALLBACK`). The reasons it is not
+the default: the page image leaves the machine, it spends quota at upload time, and a model that
+transcribes can also invent, which is the failure this project exists to prevent. Confident pages
+are never sent. The evaluation results in this repository were all measured with it off.
 
 ## Limitations
 
@@ -413,7 +423,7 @@ What this does not do, grouped by where it would bite.
 
 **Evaluation**
 
-- **The bundled sets are small and I wrote them.** 77 questions. They show the pipeline works as
+- **The bundled sets are small and I wrote them.** 98 questions. They show the pipeline works as
   designed on two kinds of document; they are not a benchmark.
 - **Generated sets are easier than human-written ones**, and the LLM judge is the same model that
   answered. Both are useful for testing your own documents and both flatter the system somewhat.
@@ -450,7 +460,14 @@ What this does not do, grouped by where it would bite.
   handwriting, skewed photos and tables. On the bundled handwritten page it read "Data Engineering"
   as "Dota Engineguing", the year 2024 as 2624, and missed the student's name. Recognised text is not
   corrected, so the answer repeats the misreading and a misread word cannot be found by search.
-  A scan is limited to 25 pages because each page takes a few seconds on a CPU.
+  A scan is limited to 25 pages because each page takes a few seconds on a CPU. The optional vision
+  fallback reads handwriting much better but has been tried on one page only, and its text is the
+  output of a model, not a reading that can be checked against a text layer.
+- **A question that repeats a document's title is pulled towards title pages.** In a first draft of
+  the report question set, every question named "the offensive language detection project". For 4
+  of 17 answerable questions the right passage was in the dense top 10 and the reranker then ranked
+  the title page, certificate and declaration above it, because they repeat that phrase. Reworded
+  the way a reader would ask ("Which GPU was used to fine-tune Distil-BERT?"), all 17 were found.
 - **English only**, and the gate threshold belongs to this embedding model. A different model needs
   `python eval/run_eval.py --tune` run again.
 - **No streaming.** The answer arrives whole, because it has to be validated before any of it is shown.
@@ -459,7 +476,7 @@ What this does not do, grouped by where it would bite.
 
 - **Free-tier quotas are finite.** Three models in a failover chain stretch a Groq free key a long
   way, but each still stops after about 200,000 tokens a day.
-- **The reranker costs about 0.7 s per question on CPU** and adds a second model to the image.
+- **The reranker costs 0.7 to 1.3 s per question on CPU** and adds a second model to the image.
 - **Two keys, not user accounts.** An admin key and a read-only key cover "who may change things",
   but there are no per-user documents: everyone with a key sees the same library.
 - **Rate limits are per process.** They reset on restart and are not shared between replicas; that
@@ -480,4 +497,7 @@ What this does not do, grouped by where it would bite.
   follow-up ("and for contractors?") into a full question using the previous turn, then search as
   usual, so the answer is still cited. A memory library such as mem0 was considered and left out:
   remembered chat would be a second, uncited source next to the documents.
-- Better OCR for scans: straighten skewed pages, keep table layout, and handle handwriting.
+- Better OCR for scans: straighten skewed pages and keep table layout. For handwriting, measure the
+  vision fallback on a set of pages and flag words where the two readings disagree.
+- Keep the top dense results in the context even when the reranker demotes them, so a question that
+  names the document cannot lose its passage to a title page.

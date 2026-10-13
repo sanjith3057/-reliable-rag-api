@@ -1,22 +1,289 @@
 [
-  {"id": "t01", "type": "answerable", "question": "What is the standard hotel cap per night under the expense policy?", "expected_answerable": true, "expected_sources": ["expense_policy.pdf"], "expected_keywords": ["180"], "expected_evidence": ["hotel cap is 180 euros per night"]},
-  {"id": "t02", "type": "answerable", "question": "How often must passwords be rotated?", "expected_answerable": true, "expected_sources": ["security_handbook.md"], "expected_keywords": ["180"], "expected_evidence": ["rotated every 180 days"]},
-  {"id": "t03", "type": "answerable", "question": "How long is the free trial of Lumenfold Cloud?", "expected_answerable": true, "expected_sources": ["pricing_sheet.txt"], "expected_keywords": ["21"], "expected_evidence": ["free trial of 21 days"]},
-  {"id": "t04", "type": "answerable", "question": "How much does the Orbit B2 weigh?", "expected_answerable": true, "expected_sources": ["orbit_b2_spec.md"], "expected_keywords": ["420"], "expected_evidence": ["Orbit B2 weighs 420 grams"]},
-  {"id": "t05", "type": "answerable", "question": "When is the weekly VPN maintenance window?", "expected_answerable": true, "expected_sources": ["it_notice.txt"], "expected_keywords": ["Sunday", "02:00||2:00||2 am"], "expected_evidence": ["every Sunday from 02:00 to 04:00 UTC"]},
-  {"id": "t06", "type": "answerable", "question": "Within how many days must an expense claim be submitted?", "expected_answerable": true, "expected_sources": ["expense_policy.pdf"], "expected_keywords": ["45"], "expected_evidence": ["submitted within 45 days"]},
-  {"id": "t07", "type": "multi", "question": "How did the annual leave entitlement change between the 2024 and 2025 handbooks?", "expected_answerable": true, "expected_sources": ["hr_policy_2024.md", "hr_policy_2025.md"], "expected_keywords": ["18", "24"], "expected_evidence": ["entitled to 18 days", "entitled to 24 days"]},
-  {"id": "t08", "type": "multi", "question": "Which scanner has the longer battery life, the Orbit A1 or the Orbit B2, and what are the two figures?", "expected_answerable": true, "expected_sources": ["orbit_a1_spec.md", "orbit_b2_spec.md"], "expected_keywords": ["B2", "14", "22"], "expected_evidence": ["battery life of 14 hours", "battery life of 22 hours"]},
-  {"id": "t09", "type": "multi", "question": "What does the Enterprise plan cost per user per month, and how fast does Enterprise support respond?", "expected_answerable": true, "expected_sources": ["pricing_sheet.txt"], "expected_keywords": ["99", "1 hour||one hour"], "expected_evidence": ["Enterprise plan: 99 euros", "Enterprise plan support responds within 1 hour"]},
-  {"id": "t10", "type": "multi", "question": "How quickly must a lost device be reported, and how much is the home office allowance?", "expected_answerable": true, "expected_sources": ["security_handbook.md", "expense_policy.pdf"], "expected_keywords": ["1 hour||one hour", "350"], "expected_evidence": ["reported within 1 hour", "home office allowance of 350 euros"]},
-  {"id": "t11", "type": "unanswerable", "question": "Who is the CEO of Lumenfold Systems?", "expected_answerable": false},
-  {"id": "t12", "type": "unanswerable", "question": "What is the stock ticker symbol of Lumenfold Systems?", "expected_answerable": false},
-  {"id": "t13", "type": "unanswerable", "question": "What is the password for the guest Wi-Fi network?", "expected_answerable": false},
-  {"id": "t14", "type": "unanswerable", "question": "What is the purchase price of the Orbit A1 scanner?", "expected_answerable": false},
-  {"id": "t15", "type": "unanswerable", "question": "What is the capital city of Australia?", "expected_answerable": false},
-  {"id": "t16", "type": "distractor", "question": "How many days of annual leave do employees get in 2025?", "expected_answerable": true, "expected_sources": ["hr_policy_2025.md"], "expected_keywords": ["24"], "distractor_sources": ["hr_policy_2024.md"], "expected_evidence": ["entitled to 24 days"]},
-  {"id": "t17", "type": "distractor", "question": "How long was the probation period under the 2024 handbook?", "expected_answerable": true, "expected_sources": ["hr_policy_2024.md"], "expected_keywords": ["6 months||six months"], "distractor_sources": ["hr_policy_2025.md"], "expected_evidence": ["probation period for new hires is 6 months"]},
-  {"id": "t18", "type": "distractor", "question": "What is the IP rating of the Orbit A1?", "expected_answerable": true, "expected_sources": ["orbit_a1_spec.md"], "expected_keywords": ["IP65"], "distractor_sources": ["orbit_b2_spec.md"], "expected_evidence": ["Orbit A1 has an IP65 rating"]},
-  {"id": "t19", "type": "distractor", "question": "What is the annual leave entitlement in the 2026 handbook?", "expected_answerable": false, "distractor_sources": ["hr_policy_2024.md", "hr_policy_2025.md"]},
-  {"id": "t20", "type": "distractor", "question": "What is the battery life of the Orbit C3?", "expected_answerable": false, "distractor_sources": ["orbit_a1_spec.md", "orbit_b2_spec.md"]}
+  {
+    "id": "t01",
+    "type": "answerable",
+    "level": 1,
+    "question": "What is the standard hotel cap per night under the expense policy?",
+    "expected_answerable": true,
+    "expected_sources": [
+      "expense_policy.pdf"
+    ],
+    "expected_keywords": [
+      "180"
+    ],
+    "expected_evidence": [
+      "hotel cap is 180 euros per night"
+    ]
+  },
+  {
+    "id": "t02",
+    "type": "answerable",
+    "level": 1,
+    "question": "How often must passwords be rotated?",
+    "expected_answerable": true,
+    "expected_sources": [
+      "security_handbook.md"
+    ],
+    "expected_keywords": [
+      "180"
+    ],
+    "expected_evidence": [
+      "rotated every 180 days"
+    ]
+  },
+  {
+    "id": "t03",
+    "type": "answerable",
+    "level": 1,
+    "question": "How long is the free trial of Lumenfold Cloud?",
+    "expected_answerable": true,
+    "expected_sources": [
+      "pricing_sheet.txt"
+    ],
+    "expected_keywords": [
+      "21"
+    ],
+    "expected_evidence": [
+      "free trial of 21 days"
+    ]
+  },
+  {
+    "id": "t04",
+    "type": "answerable",
+    "level": 1,
+    "question": "How much does the Orbit B2 weigh?",
+    "expected_answerable": true,
+    "expected_sources": [
+      "orbit_b2_spec.md"
+    ],
+    "expected_keywords": [
+      "420"
+    ],
+    "expected_evidence": [
+      "Orbit B2 weighs 420 grams"
+    ]
+  },
+  {
+    "id": "t05",
+    "type": "answerable",
+    "level": 1,
+    "question": "When is the weekly VPN maintenance window?",
+    "expected_answerable": true,
+    "expected_sources": [
+      "it_notice.txt"
+    ],
+    "expected_keywords": [
+      "Sunday",
+      "02:00||2:00||2 am"
+    ],
+    "expected_evidence": [
+      "every Sunday from 02:00 to 04:00 UTC"
+    ]
+  },
+  {
+    "id": "t06",
+    "type": "answerable",
+    "level": 1,
+    "question": "Within how many days must an expense claim be submitted?",
+    "expected_answerable": true,
+    "expected_sources": [
+      "expense_policy.pdf"
+    ],
+    "expected_keywords": [
+      "45"
+    ],
+    "expected_evidence": [
+      "submitted within 45 days"
+    ]
+  },
+  {
+    "id": "t07",
+    "type": "multi",
+    "level": 3,
+    "question": "How did the annual leave entitlement change between the 2024 and 2025 handbooks?",
+    "expected_answerable": true,
+    "expected_sources": [
+      "hr_policy_2024.md",
+      "hr_policy_2025.md"
+    ],
+    "expected_keywords": [
+      "18",
+      "24"
+    ],
+    "expected_evidence": [
+      "entitled to 18 days",
+      "entitled to 24 days"
+    ]
+  },
+  {
+    "id": "t08",
+    "type": "multi",
+    "level": 3,
+    "question": "Which scanner has the longer battery life, the Orbit A1 or the Orbit B2, and what are the two figures?",
+    "expected_answerable": true,
+    "expected_sources": [
+      "orbit_a1_spec.md",
+      "orbit_b2_spec.md"
+    ],
+    "expected_keywords": [
+      "B2",
+      "14",
+      "22"
+    ],
+    "expected_evidence": [
+      "battery life of 14 hours",
+      "battery life of 22 hours"
+    ]
+  },
+  {
+    "id": "t09",
+    "type": "multi",
+    "level": 3,
+    "question": "What does the Enterprise plan cost per user per month, and how fast does Enterprise support respond?",
+    "expected_answerable": true,
+    "expected_sources": [
+      "pricing_sheet.txt"
+    ],
+    "expected_keywords": [
+      "99",
+      "1 hour||one hour"
+    ],
+    "expected_evidence": [
+      "Enterprise plan: 99 euros",
+      "Enterprise plan support responds within 1 hour"
+    ]
+  },
+  {
+    "id": "t10",
+    "type": "multi",
+    "level": 3,
+    "question": "How quickly must a lost device be reported, and how much is the home office allowance?",
+    "expected_answerable": true,
+    "expected_sources": [
+      "security_handbook.md",
+      "expense_policy.pdf"
+    ],
+    "expected_keywords": [
+      "1 hour||one hour",
+      "350"
+    ],
+    "expected_evidence": [
+      "reported within 1 hour",
+      "home office allowance of 350 euros"
+    ]
+  },
+  {
+    "id": "t11",
+    "type": "unanswerable",
+    "level": 5,
+    "question": "Who is the CEO of Lumenfold Systems?",
+    "expected_answerable": false
+  },
+  {
+    "id": "t12",
+    "type": "unanswerable",
+    "level": 5,
+    "question": "What is the stock ticker symbol of Lumenfold Systems?",
+    "expected_answerable": false
+  },
+  {
+    "id": "t13",
+    "type": "unanswerable",
+    "level": 5,
+    "question": "What is the password for the guest Wi-Fi network?",
+    "expected_answerable": false
+  },
+  {
+    "id": "t14",
+    "type": "unanswerable",
+    "level": 5,
+    "question": "What is the purchase price of the Orbit A1 scanner?",
+    "expected_answerable": false
+  },
+  {
+    "id": "t15",
+    "type": "unanswerable",
+    "level": 5,
+    "question": "What is the capital city of Australia?",
+    "expected_answerable": false
+  },
+  {
+    "id": "t16",
+    "type": "distractor",
+    "level": 4,
+    "question": "How many days of annual leave do employees get in 2025?",
+    "expected_answerable": true,
+    "expected_sources": [
+      "hr_policy_2025.md"
+    ],
+    "expected_keywords": [
+      "24"
+    ],
+    "distractor_sources": [
+      "hr_policy_2024.md"
+    ],
+    "expected_evidence": [
+      "entitled to 24 days"
+    ]
+  },
+  {
+    "id": "t17",
+    "type": "distractor",
+    "level": 4,
+    "question": "How long was the probation period under the 2024 handbook?",
+    "expected_answerable": true,
+    "expected_sources": [
+      "hr_policy_2024.md"
+    ],
+    "expected_keywords": [
+      "6 months||six months"
+    ],
+    "distractor_sources": [
+      "hr_policy_2025.md"
+    ],
+    "expected_evidence": [
+      "probation period for new hires is 6 months"
+    ]
+  },
+  {
+    "id": "t18",
+    "type": "distractor",
+    "level": 4,
+    "question": "What is the IP rating of the Orbit A1?",
+    "expected_answerable": true,
+    "expected_sources": [
+      "orbit_a1_spec.md"
+    ],
+    "expected_keywords": [
+      "IP65"
+    ],
+    "distractor_sources": [
+      "orbit_b2_spec.md"
+    ],
+    "expected_evidence": [
+      "Orbit A1 has an IP65 rating"
+    ]
+  },
+  {
+    "id": "t19",
+    "type": "distractor",
+    "level": 5,
+    "question": "What is the annual leave entitlement in the 2026 handbook?",
+    "expected_answerable": false,
+    "distractor_sources": [
+      "hr_policy_2024.md",
+      "hr_policy_2025.md"
+    ]
+  },
+  {
+    "id": "t20",
+    "type": "distractor",
+    "level": 5,
+    "question": "What is the battery life of the Orbit C3?",
+    "expected_answerable": false,
+    "distractor_sources": [
+      "orbit_a1_spec.md",
+      "orbit_b2_spec.md"
+    ]
+  }
 ]
