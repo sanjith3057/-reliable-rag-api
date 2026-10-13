@@ -125,6 +125,21 @@ whichever model is used.
 There is no SQL database. Everything searchable lives in one ChromaDB collection on disk, in the
 `chroma_data` folder. Delete that folder and the library is empty again.
 
+## Architecture decisions
+
+| Decision | Why | What it costs |
+| --- | --- | --- |
+| Refusals are enforced in code: a similarity gate before the AI model and a citation check after it | A model told "do not guess" still guesses sometimes. Code does not | A valid question worded very differently from the document can be refused |
+| Embeddings and the vector store run locally (`bge-small-en-v1.5`, ChromaDB on disk) | Documents stay on the machine; no second service or key to set up | One process, one disk: not built for many servers |
+| A reranker re-reads the top 20 results and keeps 5 | Dense search alone missed passages in a long real document | About a second more per question on CPU |
+| The chunks next to each hit are sent too | A list split across chunks was coming back incomplete | More tokens per question |
+| An existing LLM API (Groq by default, OpenAI or Gemini by setting), three models in a failover chain | No training needed, and a free tier is enough to run it | The daily quota runs out under heavy use |
+| No fine-tuning | The failures seen were retrieval and grounding failures, which a tuned model does not fix | None so far |
+| Scanned pages are read with a local OCR model; a vision model is optional and off | Scans should work without sending page images anywhere | Handwriting is read badly unless the option is turned on |
+
+The reasoning behind each, with the measurements, is in
+[System design: decisions](docs/SYSTEM_DESIGN.md#design-decisions-and-trade-offs).
+
 ## Does it work?
 
 Measured with the real AI model, not a simulation, on 13 Oct 2026.
@@ -218,6 +233,7 @@ Dockerfile, docker-compose.yml
 | Existing LLM API, no training from scratch | Groq, OpenAI or Gemini; the embedding model is pretrained |
 | Sample documents and evaluation questions | `sample_docs/`, `real_docs/`, `eval/questions_*.json` |
 | Test results | [`tests/RESULTS.md`](tests/RESULTS.md), [`eval/results.md`](eval/results.md), [`eval/results_real.md`](eval/results_real.md) |
+| README with setup instructions and architecture decisions | "Run it" and "Architecture decisions" above |
 | Discussion of limitations | Below, and in full in [System design](docs/SYSTEM_DESIGN.md#limitations) |
 
 ## Limitations
