@@ -127,20 +127,19 @@ There is no SQL database. Everything searchable lives in one ChromaDB collection
 
 ## Does it work?
 
-Measured with the real AI model, not a simulation. The runs used the last of the three fallback
-models, because my own testing had used up the daily quota of the first two.
+Measured with the real AI model, not a simulation. The three prepared sets were last run on
+13 Oct 2026 against all 11 bundled documents.
 
 | Question set | What it tests | Result |
 | --- | --- | --- |
-| 20 questions on 8 made-up company documents | Answers must come from the documents, because no AI model knows these facts | 19 / 20 |
+| 20 questions on 8 made-up company documents | Answers must come from the documents, because no AI model knows these facts | 20 / 20 |
 | 18 questions on the 88-page GDPR regulation | Finding the right passage in a long, dense, real document | 18 / 18 |
+| 18 questions on a filled-in form and a handwritten scan | Documents that are not prose, and text read with OCR | 17 / 18 |
 | 10 questions written automatically from a document it had never seen | Does it work on someone else's file? | 10 / 10 |
-| 18 questions on a filled-in form and a handwritten scan | Documents that are not prose, and text read with OCR | Retrieval checked: the right passage is found for 12 of 13 answerable questions. The run with the AI model is pending (daily quota spent) |
 
-The first three results were measured before the form and the scan were added to the document
-set, so they have not been re-run on the 11 documents now bundled. These sets are small. The one miss on the first set was a trap question that got an explanation
-instead of a refusal; the prompt was tightened and that question now passes, but the full set has
-not been re-run since. One question on the GDPR set has passed in some runs and failed in others.
+The one miss is the date on the handwritten page: it says 2024 and the OCR read 2624. These sets
+are small and I wrote most of them, and earlier runs scored lower: one question on the GDPR set
+has passed in some runs and failed in others.
 The full numbers, the runs that went badly and what was changed are in
 [Evaluation and tests](docs/EVALUATION.md).
 

@@ -16,10 +16,10 @@ How the system was measured, what the numbers are, and how much to trust them.
 
 | Question set | Result |
 | --- | --- |
-| 20 questions on made-up company documents | 19 / 20 on the last complete run; the failing question is fixed and re-checked, a full re-run is pending |
+| 20 questions on made-up company documents | 20 / 20 |
 | 18 questions on the 88-page GDPR regulation | 18 / 18 |
 | 10 generated questions on a document never used for tuning | 10 / 10 |
-| 18 questions on a filled-in form and a handwritten scan | Retrieval checked: the right passage is found for 12 of 13 answerable questions. The run with the AI model is pending (daily quota spent) |
+| 18 questions on a filled-in form and a handwritten scan | 17 / 18; the miss is a handwritten date the OCR misread |
 | 186 automated tests | 186 passed |
 
 Every evaluation number comes from a live run: real retrieval, the real LLM, no mocks. The sets are
@@ -40,10 +40,6 @@ There are two kinds of check in this project, and they answer different question
 All sets run against one mixed corpus of 588 chunks from 11 documents: the 8 short fictional
 documents, an 88-page real PDF (the GDPR regulation), a filled-in medical intake form (fictional)
 and a handwritten page read with OCR. The last three are in `real_docs/`.
-
-The test-set and real-set results below were measured on 12 Oct 2026, before the form and the
-handwritten page were added, when the corpus was 584 chunks from 9 documents. They have not been
-re-run on the larger corpus: the daily quota was spent.
 
 | Set | Questions | Written against | Purpose |
 | --- | --- | --- | --- |
@@ -68,41 +64,37 @@ questions.
 
 ## Results
 
-Both runs: Groq `qwen/qwen3.8-27b` (the third and weakest model in the failover chain, because the
-other two had used up their daily quota), `bge-small-en-v1.5`, reranker on, top-k 5, gate 0.40,
-neighbouring chunks on, the longer-answer prompt. Run on 12 Oct 2026.
+All three runs: 13 Oct 2026, `bge-small-en-v1.5`, reranker on, top-k 5, gate 0.40, neighbouring
+chunks on, the longer-answer prompt, on the full 588-chunk corpus. The test and real sets ran on
+Groq `openai/gpt-oss-120b`, the default model. By the time the forms set ran, that model's daily
+quota was spent, so it ran on the first fallback, `openai/gpt-oss-20b`.
 
-| Metric | Test set (fictional) | Real set (GDPR) | Definition |
-| --- | --- | --- | --- |
-| Questions passed | 19 / 20 | 18 / 18 | Every applicable check below passed |
-| Retrieval hit@5 | 100% | 100% | The expected documents were retrieved and, on the real set, the supporting passage is inside a retrieved chunk |
-| Abstention accuracy | 95% | 100% | Answered when it should, refused when it should |
-| Citation correctness | 100% | 100% | At least one citation, and every citation is an expected document |
-| Answer keyword accuracy | 100% | 100% | The answer contains the expected facts |
-| Distractor resilience | 100% | n/a | Cited the right document and not the near-miss |
-| Average latency | 15.6 s | 20.3 s | Dominated by rate-limit waits, see below |
+| Metric | Test set (fictional) | Real set (GDPR) | Forms set | Definition |
+| --- | --- | --- | --- | --- |
+| Questions passed | 20 / 20 | 18 / 18 | 17 / 18 | Every applicable check below passed |
+| Retrieval hit@5 | 100% | 100% | 92% | The expected documents were retrieved and the supporting passage is inside a retrieved chunk |
+| Abstention accuracy | 100% | 100% | 100% | Answered when it should, refused when it should |
+| Citation correctness | 100% | 100% | 100% | At least one citation, and every citation is an expected document |
+| Answer keyword accuracy | 100% | 100% | 92% | The answer contains the expected facts |
+| Distractor resilience | 100% | n/a | n/a | Cited the right document and not the near-miss |
+| Average latency | 3.8 s | 5.4 s | 4.1 s | Most questions took 0.7 to 2 seconds; a few waited on the rate limit |
 
-Per-question tables: [`eval/results.md`](../eval/results.md) and
-[`eval/results_real.md`](../eval/results_real.md).
+Per-question tables: [`eval/results.md`](../eval/results.md),
+[`eval/results_real.md`](../eval/results_real.md) and
+[`eval/results_forms.md`](../eval/results_forms.md).
 
-**The one failure, t13, came from the change that allows longer answers.** The question is "What is
-the password for the guest Wi-Fi network?". The handbook says the password rotates weekly and is
-handed out at reception; it does not give the password. The expected result is a refusal. With the
-new instruction to give complete answers, the model replied "The password is not available in the
-documents because it rotates weekly, is handed out in person, and is never written down". That is
-true and cited, but it counts as answering. The run before this change scored 20 / 20.
+**t13 now passes in a full run.** The run before this one scored 19 / 20: "What is the password
+for the guest Wi-Fi network?" got an explanation of why the password is not written down, where a
+refusal was expected. That came from the change that allows longer answers. One sentence was added
+to the prompt (when the requested fact is not stated, refuse, even if the sources explain why it
+is missing), and this run is the first complete one since. The earlier run was on
+`qwen/qwen3.8-27b` and this one on `gpt-oss-120b`, so the two differ by model as well as by prompt.
 
-**What was done about it, and what is not yet measured.** One sentence was added to the prompt:
-when the requested fact is not stated, refuse, even if the sources explain why it is missing. After
-that, t13 and the other three near-topic and off-topic test questions (t11, t12, t14) were each
-asked twice and refused every time. A full re-run of the test set then stopped after nine questions
-(all nine passed) when the last model's daily quota ran out, so it was not saved. The real set was
-run before that one sentence was added. Both sets should be run once more:
-`python eval/run_eval.py` and `python eval/run_eval.py --dataset real`.
 **One question is borderline.** r12 asks two things at once: how quickly a breach must be reported
-and what the highest fine is. Those facts are on pages 52 and 83. In the run before this one it
+and what the highest fine is. Those facts are on pages 52 and 83. In one earlier run it
 failed: the two passages were not both retrieved, the model said the evidence was insufficient, and
-the system refused. In this run the second pass found both and it passed, after 24 seconds. I count
+the system refused. In the last two runs the second pass found both and it passed; in this one that
+took 17 seconds. I count
 that as a question the system can get right, not one it reliably does. Across every run, a failure
 was always a wrong refusal or a provider error: no question in either set produced an unsupported
 answer.
@@ -113,27 +105,30 @@ Added on 13 Oct 2026, after two outside reviews of the system on a medical intak
 OCR was added. 18 questions: 13 on the form (8 single-fact, 2 multi-part, 3 unanswerable) and 5 on
 the handwritten page (3 answerable, 2 unanswerable).
 
-**Status: not yet run with the AI model.** Two attempts on 13 Oct 2026 stopped on the provider's
-daily limit for all three models, and a run with provider errors is never saved. There is no
-pass count to report yet.
-
-What could be measured without the AI model is retrieval, on the full 588-chunk corpus:
+**Result: 17 / 18** on `gpt-oss-20b`. All 13 form questions passed, including the three that must
+be refused and the phone-number question (f08). On the handwritten page, 4 of 5 passed.
 
 | Check | Form (13 questions) | Handwritten page (5 questions) |
 | --- | --- | --- |
-| Right document among the passages sent to the model | 10 / 10 answerable | 3 / 3 answerable |
-| The exact supporting text is in those passages | 10 / 10 | 2 / 3 |
-| Unanswerable questions stopped by the gate | 0 / 3 | 0 / 2 |
+| Passed | 13 / 13 | 4 / 5 |
+| Answerable questions answered with the right fact and source | 10 / 10 | 2 / 3 |
+| Unanswerable questions refused | 3 / 3 | 2 / 2 |
+| The exact supporting text was in the passages sent to the model | 10 / 10 | 2 / 3 |
+| Unanswerable questions stopped by the gate, before the model | 0 / 3 | 0 / 2 |
 
 Two things to read from this:
 
-- **One question cannot pass.** s03 asks for the date on the handwritten page. The page says
-  16-11-2024; the OCR read 16-11-2624. The question is kept in the set because it is what a
-  user would ask, and its failure measures the OCR, not the search.
-- **The gate stops none of the five unanswerable questions** (their best passages score 0.59 to
-  0.72, the gate is 0.40). That is expected: "What is the patient's blood type?" is close in
-  meaning to a patient form. Whether they are refused depends on the model saying the fact is not
-  there, which is exactly what the pending run has to show.
+- **The one failure is the OCR, not the search or the model.** s03 asks for the date on the
+  handwritten page. The page says 16-11-2024; the OCR read 16-11-2624. The system found the page,
+  answered and cited it, and the answer did not contain the right date. The question was written
+  knowing this and is kept because it is what a user would ask.
+- **All five refusals came from the model, none from the gate.** The best passages for the
+  unanswerable questions score 0.59 to 0.72 against a gate of 0.40: "What is the patient's blood
+  type?" is close in meaning to a patient form. The model was sent the passages and said the fact
+  was not there. On a form, the gate does no work; the prompt and the citation check do.
+
+This is one run on one model. The other two answerable questions on the handwritten page passed
+because the OCR happened to read "22CDA602" and "Data Science" correctly.
 
 Earlier spot checks on the form are described in step 8 of the history below. In one of them the
 weakest model gave the wrong phone number for the patient; that question (f08) is in the set.
@@ -237,6 +232,10 @@ The last two rows are failures that remain. Both are listed under
     library. This cost one test question (t13, described under Results) until the prompt was
     tightened.
 
+11. **OCR and a third prepared set.** Scanned pages are now read with a local OCR model, and a
+    form and a handwritten page were added to the corpus with 18 questions. The first complete run
+    of all three sets on the 11 documents: 20 / 20, 18 / 18 and 17 / 18.
+
 Steps 2 to 10 used information from outside the dev set, including the earlier real-set runs, so the
 real-set score is not a clean held-out number. No change was made to target r12 specifically.
 
@@ -293,13 +292,13 @@ What this says:
 - **The model already knows the GDPR.** A correct answer on the real set does not prove grounding
   by itself. The fictional set is what proves that. The real set shows retrieval, citation and
   refusal on long real text.
-- **Latency is dominated by the free tier.** Groq allows 8,000 tokens per minute on this plan, so
-  most questions waited for the limit to reset. Questions that did not wait took 1.1 to 3.0
-  seconds, and questions stopped by the gate took about 0.5 seconds.
-- **Model choice was forced.** The default model is `gpt-oss-120b`, but its 200,000-token daily
-  quota was exhausted by earlier runs, so the numbers come from the last model in the failover
-  chain. An earlier test-set run on `gpt-oss-120b`, with the first version's
-  settings, also scored 20 / 20. The current configuration has not been measured on `gpt-oss-120b`.
+- **Latency depends on the free tier.** Groq allows 8,000 tokens per minute on this plan. In these
+  runs most questions took 0.7 to 2 seconds; the ones that took 10 to 40 seconds were waiting for
+  the limit to reset or went through a second retrieval pass.
+- **The three sets did not all run on the same model.** The test and real sets ran on the default,
+  `gpt-oss-120b`. The forms set ran on `gpt-oss-20b` because the default's daily quota ran out. The
+  runs before these, on `qwen/qwen3.8-27b`, scored 19 / 20 and 18 / 18.
+- **One run each.** Answers from an LLM vary between runs, and r12 has gone both ways.
 - **Answer accuracy is a keyword match**, which checks that the right number or name is present,
   not that the whole sentence is correct.
 
