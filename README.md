@@ -143,7 +143,7 @@ been re-run with it; the report set ran on the weakest of the three models. Thes
 one question on the GDPR set has passed in some runs and failed in others.
 
 The same questions grouped by difficulty level and by document format (PDF, Markdown, plain text,
-form, scan) are in the [question bank](eval/QUESTION_BANK.md).
+form, scan) are in the [question bank](eval/QUESTION_BANK.md) ([PDF](eval/QUESTION_BANK.pdf)).
 The full numbers, the runs that went badly and what was changed are in
 [Evaluation and tests](docs/EVALUATION.md).
 
